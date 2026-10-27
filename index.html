@@ -113,6 +113,11 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
 .ex>input[data-f="t"]{flex:1 1 0!important;min-width:0}
 
 .wl select[data-f="cur"],.ex select[data-f="cur"]{width:52px!important;flex:0 0 52px!important;font-size:13px!important;padding:6px 0 6px 4px!important}
+.wish-summary{border:2px solid var(--dc);border-radius:12px;padding:14px;margin:0 0 14px;background:var(--card)}
+.ws-title{font-size:14px;color:var(--sub);margin-bottom:8px}.ws-second{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.ws-currencies{display:flex;flex-wrap:wrap;gap:8px}.ws-currency{display:flex;align-items:baseline;gap:7px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;min-width:120px;max-width:100%;background:var(--bg)}
+.ws-currency span{font-size:13px;color:var(--sub)}.ws-currency b{font-size:21px;overflow-wrap:anywhere}.ws-currency small{font-size:11px;color:var(--sub)}.ws-empty{font-size:14px;color:var(--sub)}
+
 </style>
 </head>
 <body>
@@ -276,7 +281,7 @@ function renderOther(){
   let h='';
   if(V==='pack'){h=packHtml()}else if(V==='wish'){
     const L=S.wish.map((o,i)=>({o,i})).filter(x=>WF==='全部'||(x.o.cat||'其他')===WF);
-    h=`<div class="fx"><label>分類<select id="wfil" data-keep="1">${['全部',...WC].map(c=>`<option${c===WF?' selected':''}>${c}</option>`).join('')}</select></label></div><ul class="items">${L.map(x=>wishRow(x.o,x.i)).join('')||'<li class="empty">還沒有項目，按下方新增。</li>'}</ul><div class="bar"><button class="btn main" data-add="wish">＋ 新增想買的東西</button></div><div class="total" id="sum"></div>`;
+    h=`<div class="wish-summary" id="wish-summary"><div class="ws-title">預估總額（全部願望）</div><div class="ws-currencies" id="wish-currencies"></div><div class="ws-title ws-second">還沒買的</div><div class="ws-currencies" id="wish-unbought"></div></div><div class="fx"><label>分類<select id="wfil" data-keep="1">${['全部',...WC].map(c=>`<option${c===WF?' selected':''}>${c}</option>`).join('')}</select></label></div><ul class="items">${L.map(x=>wishRow(x.o,x.i)).join('')||'<li class="empty">還沒有項目，按下方新增。</li>'}</ul><div class="bar"><button class="btn main" data-add="wish">＋ 新增想買的東西</button></div><div class="total" id="sum"></div>`;
   }else if(V==='exp'){
     h=`<div class="total" id="sum"></div><div id="ptot" class="ptot"></div><p class="sub">旅伴（可改名、可刪除）</p><div class="ppl">${S.people.map((p,i)=>`<span class="pp"><input data-pp="${i}" value="${esc(p)}" aria-label="旅伴"><button class="btn del" data-delp="${i}" aria-label="刪除旅伴"${S.people.length<2?' disabled':''}>✕</button></span>`).join('')}<button class="btn" data-add="ppl">＋ 旅伴</button></div><p class="sub">支出</p><ul class="items">${S.exp.map(expRow).join('')}</ul><div class="bar"><button class="btn main" data-add="exp">＋ 新增支出</button></div>`;
   }else if(V==='dine'){
@@ -305,7 +310,7 @@ function settle(){
 function updateSum(){
   const s=$('sum');if(!s)return;
   if(V==='pack'){const n=S.pack.filter(o=>o.done).length;s.textContent=S.pack.length?`已打包 ${n} / ${S.pack.length}`:''}
-  if(V==='wish'){const m=l=>moneyTxt(l.map(o=>({a:+o.price||0,c:o.cur||S.fc}))),A=m(S.wish),B=m(S.wish.filter(o=>!o.done));s.textContent=A.t?'預估總額 '+f2(A.t)+' '+A.u+uHome(A.t,A.u)+'；還沒買的 '+f2(B.t)+' '+B.u:''}
+  if(V==='wish'){const groups=list=>{const g={};list.forEach(o=>{const cur=o.cur||S.fc||'JPY';g[cur]=(g[cur]||0)+(+o.price||0)});return Object.entries(g).map(([cur,total])=>`<div class="ws-currency"><span>${esc(cur)}</span><b>${f2(total)}</b><small>${cur==='TWD'?'TWD':cur==='JPY'?'JPY':cur}</small></div>`).join('')||'<div class="ws-empty">尚無金額</div>'};const a=$('wish-currencies'),b=$('wish-unbought');if(a)a.innerHTML=groups(S.wish);if(b)b.innerHTML=groups(S.wish.filter(o=>!o.done));s.textContent=''}
   if(V==='exp'){s.innerHTML=settle();const pt=$('ptot');if(pt)pt.innerHTML=ptotHtml()}
   if(V==='flt')s.innerHTML=fltSum();
   if(V==='dine')s.textContent=S.dine.length?'共 '+S.dine.length+' 家備選餐廳':'';
