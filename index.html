@@ -67,7 +67,21 @@ input:disabled,textarea:disabled,select:disabled{opacity:1;color:inherit;-webkit
 .grp{margin-top:12px}.gh{display:flex;gap:8px;align-items:center}.gh span{color:var(--sub);flex:1}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.chip{display:inline-flex;gap:2px;align-items:center;border:1px solid var(--dc);border-radius:99px;padding:2px 4px 2px 10px;font-size:14px;background:var(--card)}.chip .btn{padding:0 6px;border:0;background:transparent}
 .pp{display:inline-flex;gap:2px;align-items:center}.pp .btn{padding:2px 8px}
-.ptot{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}.pc{flex:1 1 140px;border:1px solid var(--dc);border-radius:10px;padding:8px 10px;font-size:14px;background:var(--card)}
+.expense-summary{border:2px solid var(--dc);border-radius:14px;padding:14px 16px;margin:0 0 18px;background:var(--card)}
+.expense-summary .total{margin:0;color:var(--ink);font-weight:400}
+.expense-total-label{font-size:14px;color:var(--sub);margin-bottom:8px}
+.expense-total-values{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:baseline;font-size:22px;line-height:1.3;color:var(--ink)}
+.expense-total-values b{font-weight:700;overflow-wrap:anywhere}
+.expense-conversion{font-size:14px;color:var(--sub);margin-top:8px}
+.ptot{display:block;margin:18px 0 0;font-size:14px;color:var(--ink)}
+.ptot-head,.ptot-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.65fr) minmax(0,1.65fr);gap:8px;padding:9px 0;align-items:start}
+.ptot-head{border-bottom:1px solid var(--line);color:var(--sub)}
+.ptot-row{border-bottom:1px solid var(--line);font-size:14px;line-height:1.45}
+.ptot-row:last-child{border-bottom:0;padding-bottom:0}
+.ptot-row b{font-size:15px;overflow-wrap:anywhere}
+.ptot-row span{min-width:0;overflow-wrap:anywhere}
+.ptot-row small{display:block;color:var(--sub);font-size:13px;margin-top:3px}
+@media(max-width:480px){.expense-summary{padding:12px}.expense-total-values{font-size:20px;gap:8px 14px}.ptot-head,.ptot-row{grid-template-columns:minmax(0,.9fr) minmax(0,1.4fr) minmax(0,1.4fr);gap:6px}.ptot-row{font-size:13px}.ptot-row b{font-size:14px}.ptot-row small{font-size:12px}}
 .ro #newcat,.ro [data-addcat]{display:none}
 .ov{position:fixed;inset:0;background:rgba(40,40,40,.35);display:flex;align-items:center;justify-content:center;z-index:20;padding:20px}.dlg{background:var(--card);border-radius:14px;padding:18px;max-width:360px;width:100%}.dlg p{margin:0 0 6px}
 .meta.box{display:grid;grid-template-columns:1fr 1fr;gap:8px;border:2px solid var(--dc);border-radius:12px;padding:10px;background:var(--card);margin:2px 0 12px}
@@ -303,7 +317,7 @@ function renderOther(){
     const L=S.wish.map((o,i)=>({o,i})).filter(x=>WF==='全部'||(x.o.cat||'其他')===WF);
     h=`<div class="wish-summary" id="wish-summary"><div class="ws-title">預估總額（全部願望）</div><div class="ws-currencies" id="wish-currencies"></div><div class="ws-title ws-second">還沒買的</div><div class="ws-currencies" id="wish-unbought"></div></div><div class="fx"><label>分類<select id="wfil" data-keep="1">${['全部',...WC].map(c=>`<option${c===WF?' selected':''}>${c}</option>`).join('')}</select></label></div><ul class="items">${L.map(x=>wishRow(x.o,x.i)).join('')||'<li class="empty">還沒有項目，按下方新增。</li>'}</ul><div class="bar"><button class="btn main" data-add="wish">＋ 新增想買的東西</button></div><div class="total" id="sum"></div>`;
   }else if(V==='exp'){
-    h=`<div class="total" id="sum"></div><div id="ptot" class="ptot"></div><p class="sub">旅伴（可改名、可刪除）</p><div class="ppl">${S.people.map((p,i)=>`<span class="pp"><input data-pp="${i}" value="${esc(p)}" aria-label="旅伴"><button class="btn del" data-delp="${i}" aria-label="刪除旅伴"${S.people.length<2?' disabled':''}>✕</button></span>`).join('')}<button class="btn" data-add="ppl">＋ 旅伴</button></div><p class="sub">支出</p><ul class="items">${S.exp.map(expRow).join('')}</ul><div class="bar"><button class="btn main" data-add="exp">＋ 新增支出</button></div>`;
+    h=`<div class="expense-summary"><div class="total" id="sum"></div><div id="ptot" class="ptot"></div></div><p class="sub">旅伴（可改名、可刪除）</p><div class="ppl">${S.people.map((p,i)=>`<span class="pp"><input data-pp="${i}" value="${esc(p)}" aria-label="旅伴"><button class="btn del" data-delp="${i}" aria-label="刪除旅伴"${S.people.length<2?' disabled':''}>✕</button></span>`).join('')}<button class="btn" data-add="ppl">＋ 旅伴</button></div><p class="sub">支出</p><ul class="items">${S.exp.map(expRow).join('')}</ul><div class="bar"><button class="btn main" data-add="exp">＋ 新增支出</button></div>`;
   }else if(V==='dine'){
     const L=S.dine.map((o,i)=>({o,i})).filter(x=>DF==='全部'||x.o.cat===DF);
     const K={cat:x=>DC.indexOf(x.o.cat),name:x=>x.o.name||'',open:x=>x.o.open||'99:99',close:x=>x.o.close||'99:99'}[DS];
@@ -318,14 +332,9 @@ function renderOther(){
   $('oth').innerHTML=h;updateSum();applyRO();paintVotes();paintWarn();paintDist();if(V==='wish')refreshWishVotes();
 }
 function settle(){
-  const P=S.people,bal=P.map(()=>0);let tot=0;
-  S.exp.forEach(o=>{const a=+o.amt||0,sp=(o.split||[]).filter(j=>j<P.length);if(!a||!sp.length)return;tot+=a;bal[+o.who||0]+=a;sp.forEach(j=>bal[j]-=a/sp.length)});
-  if(!tot)return '';
-  const cr=[],db=[];bal.forEach((b,i)=>{if(b>0.005)cr.push({i,b});else if(b<-0.005)db.push({i,b:-b})});
-  cr.sort((a,b)=>b.b-a.b);db.sort((a,b)=>b.b-a.b);
-  const out=[];let x=0,y=0;
-  while(x<cr.length&&y<db.length){const m=Math.min(cr[x].b,db[y].b);out.push(esc(P[db[y].i])+' 付給 '+esc(P[cr[x].i])+'　'+f2(m)+' '+esc(S.fc)+esc(home(m)));cr[x].b-=m;db[y].b-=m;if(cr[x].b<0.005)x++;if(db[y].b<0.005)y++}
-  return `<div>總支出 ${f2(tot)} ${esc(S.fc)}${esc(home(tot))}</div><div>每人淨額（正數＝別人要補給他）：${P.map((p,i)=>esc(p)+' '+(bal[i]>=0?'+':'')+f2(bal[i])).join('、')}</div>`+(out.length?'<div>結算</div>'+out.map(t=>`<div>${t}</div>`).join(''):'<div>已經打平。</div>');
+  const total=S.exp.reduce((n,o)=>n+(+o.amt||0),0);
+  if(!total)return '<div class="expense-total-label">總支出</div><div class="expense-total-values"><b>尚無支出</b></div>';
+  return `<div class="expense-total-label">總支出</div><div class="expense-total-values"><b>${esc(S.fc)} ${f2(total)}</b>${R()?'<b>'+esc(S.hc)+' '+f2(total*R())+'</b>':''}</div>`+(R()?'<div class="expense-conversion">全部換算約 '+f2(total*R())+' '+esc(S.hc)+'</div>':'');
 }
 function updateSum(){
   const s=$('sum');if(!s)return;
@@ -453,7 +462,7 @@ function packHtml(){
 function ptotHtml(){
   const P=S.people,paid=P.map(()=>0),owed=P.map(()=>0);
   S.exp.forEach(o=>{const a=+o.amt||0,sp=(o.split||[]).filter(j=>j<P.length),w=+o.who||0;if(!a||!sp.length||w>=P.length)return;paid[w]+=a;sp.forEach(j=>owed[j]+=a/sp.length)});
-  return P.map((p,i)=>`<div class="pc"><b>${esc(p)}</b><div>已付 ${f2(paid[i])} ${esc(S.fc)}${esc(home(paid[i]))}</div><div class="sub">應分攤 ${f2(owed[i])} ${esc(S.fc)}</div></div>`).join('');
+  return `<div class="ptot-head"><span>旅伴</span><span>已付</span><span>應分攤</span></div>`+P.map((p,i)=>`<div class="ptot-row"><b>${esc(p)}</b><span>${esc(S.fc)} ${f2(paid[i])}${R()?'<small>'+esc(S.hc)+' '+f2(paid[i]*R())+'</small>':''}</span><span>${esc(S.fc)} ${f2(owed[i])}${R()?'<small>'+esc(S.hc)+' '+f2(owed[i]*R())+'</small>':''}</span></div>`).join('');
 }
 const WC=['食品零食','美妝保養','服飾','藥妝','文具雜貨','伴手禮','其他'];
 const CUR=['JPY','TWD','USD','EUR','KRW','THB','HKD','CNY'];
