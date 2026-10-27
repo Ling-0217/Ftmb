@@ -891,7 +891,7 @@ document.getElementById('cloudLogin').addEventListener('click',async()=>{
   const email=emailInput?emailInput.value:'';
   if(!email||!email.trim()){cloudStatus('請先輸入已獲授權的電子郵件。');if(emailInput)emailInput.focus();return;}
   cloudStatus('正在寄送登入連結…');
-  const {error}=await sb.auth.signInWithOtp({email:email.trim(),options:{emailRedirectTo:'https://okinawa-itinerary-two.vercel.app/'}});
+  const {error}=await sb.auth.signInWithOtp({email:email.trim(),options:{emailRedirectTo:window.location.origin}});
   if(error){cloudStatus('無法寄送登入連結：'+error.message);return}
   cloudStatus('登入連結已寄出，請開啟電子郵件並點擊連結，再回到此網站。');
   flash('已寄出登入連結，請查看電子郵件',4000);
