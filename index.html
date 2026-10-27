@@ -130,9 +130,9 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
 .ro input[data-keep]{border-color:var(--line)!important}.ro .btn.del,.ro [data-add]{display:none}
 .thumb{flex:none;width:56px;height:56px;border-radius:8px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;background:var(--ft);font-size:18px}
 .thumb img{width:100%;height:100%;object-fit:cover}
-.thumb.big{width:100%;height:auto;min-height:44px;font-size:14px;color:var(--sub)}.thumb.big img{height:auto;object-fit:contain}
+.thumb.big{width:100%;height:auto;min-height:44px;font-size:14px;color:var(--sub)}.thumb.big img{height:auto;object-fit:contain}.thumb.dine-photo{width:100%;height:112px;min-height:0;aspect-ratio:1/1;max-width:220px}.thumb.dine-photo img{width:100%;height:100%;object-fit:cover}.fl .full.dine-images{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:start}.fl .full.dine-images .thumb.dine-photo{width:100%;height:auto;aspect-ratio:1/1;max-width:none}.fl .full.dine-images .thumb.dine-photo:not(:has(img)){height:auto;min-height:0;aspect-ratio:1/1}
 .ro .thumb:not(:has(img)){display:none}
-.fl>select{flex:0 0 auto}.fl>input{flex:1 1 140px;font-weight:600}.fl .full{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.fl .full input{width:auto;flex:1 1 120px;min-width:0;border-color:var(--line)}
+.fl>select{flex:0 0 auto}.fl>input{flex:1 1 140px;font-weight:600}.fl .full{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.fl .full.dine-note textarea{flex:1 1 100%;width:100%;min-height:2.4em;resize:none;overflow:hidden;white-space:pre-wrap;overflow-wrap:anywhere}.fl .full input{width:auto;flex:1 1 120px;min-width:0;border-color:var(--line)}
 @media(max-width:420px){.item{grid-template-columns:84px 1fr}}
 
 .leg{flex-wrap:nowrap;gap:4px;margin-left:0}.leg select{min-width:0;max-width:8em;font-size:14px;padding:3px 4px}.leg input{width:56px;flex:none}.leg a{flex:none;padding:3px 8px;text-decoration:none}.leg>*{flex-shrink:0}.leg select{flex-shrink:1}
@@ -388,7 +388,7 @@ function updateSum(){
   if(V==='dine')s.textContent=S.dine.length?'共 '+S.dine.length+' 家備選餐廳':'';
 }
 function thumb(k,i,o,cls){
-  return `<label class="thumb${cls}">${o.img?`<img src="${o.img}" alt="">`:(cls.includes('big')?(k==='flt'?'📷 附上機票截圖':'📷 上傳照片'):'📷')}<input type="file" accept="image/*" data-img="${k}" data-i="${i}" hidden></label>`;
+  return `<label class="thumb${cls}${k==='dine'?' dine-photo':''}">${o.img?`<img src="${o.img}" alt="">`:(cls.includes('big')?(k==='flt'?'📷 附上機票截圖':'📷 上傳照片'):'📷')}<input type="file" accept="image/*" data-img="${k}" data-i="${i}" hidden></label>`;
 }
 function pickImg(file,max,cb){
   if(!file)return;
@@ -517,7 +517,7 @@ function dineRow(o,i){
   const a=`data-k="dine" data-i="${i}"`;
   const sel=`<select ${a} data-f="cat" aria-label="分類">${DC.map(c=>`<option${o.cat===c?' selected':''}>${c}</option>`).join('')}</select>`;
   const off=['日','一','二','三','四','五','六'].map((w,j)=>`<label class="dchip"><input type="checkbox" ${a} data-f="off" data-n="${j}"${(o.off||[]).includes(j)?' checked':''}>${w}</label>`).join('');
-  return `<li class="item ex fl"><div class="full">${thumb('dine',i,o,' big')}</div>${sel}<input ${a} data-f="name" value="${esc(o.name)}" placeholder="店名"><div class="full nw"><span>地址</span><input ${a} data-f="addr" value="${esc(o.addr)}" placeholder="地址"><a class="btn" target="_blank" rel="noopener" data-dmap="${i}">地圖</a></div><div class="full nw"><span>營業</span><input type="time" ${a} data-f="open" value="${esc(o.open)}"><span>到</span><input type="time" ${a} data-f="close" value="${esc(o.close)}"></div><div class="full nw"><span>公休</span>${off}</div><div class="full"><span class="warn" data-warn="${i}"></span><span class="sub" data-dist="${i}"></span></div><div class="full">備註 <input ${a} data-f="note" value="${esc(o.note)}" placeholder="必點、要預約…"></div><button class="btn del" data-x="dine" data-i="${i}">刪除</button></li>`;
+  return `<li class="item ex fl"><div class="full dine-images">${thumb('dine',i,o,' big')}</div>${sel}<input ${a} data-f="name" value="${esc(o.name)}" placeholder="店名"><div class="full nw"><span>地址</span><input ${a} data-f="addr" value="${esc(o.addr)}" placeholder="地址"><a class="btn" target="_blank" rel="noopener" data-dmap="${i}">地圖</a></div><div class="full nw"><span>營業</span><input type="time" ${a} data-f="open" value="${esc(o.open)}"><span>到</span><input type="time" ${a} data-f="close" value="${esc(o.close)}"></div><div class="full nw"><span>公休</span>${off}</div><div class="full"><span class="warn" data-warn="${i}"></span><span class="sub" data-dist="${i}"></span></div><div class="full dine-note">備註 <textarea ${a} data-f="note" rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'" placeholder="必點、要預約…">${esc(o.note)}</textarea></div><button class="btn del" data-x="dine" data-i="${i}">刪除</button></li>`;
 }
 function distOf(o,i){
   const c=o.lat!=null?{lat:o.lat,lng:o.lng}:COORD[i];if(!ME||!c)return null;
@@ -640,7 +640,7 @@ function dineRow(o,i){
   const a=`data-k="dine" data-i="${i}"`;
   const sel=`<select ${a} data-f="cat" aria-label="分類">${DC.map(c=>`<option${o.cat===c?' selected':''}>${c}</option>`).join('')}</select>`;
   const off=['日','一','二','三','四','五','六'].map((w,j)=>`<label class="dchip"><input type="checkbox" ${a} data-f="off" data-n="${j}"${(o.off||[]).includes(j)?' checked':''}>${w}</label>`).join('');
-  return `<li class="item ex fl">${gal('dine',i,o,'l')}${sel}<input ${a} data-f="name" value="${esc(o.name)}" placeholder="店名"><div class="full nw"><span>地址</span><input ${a} data-f="addr" value="${esc(o.addr)}" placeholder="地址"><a class="btn" target="_blank" rel="noopener" data-dmap="${i}">地圖</a></div><div class="full nw"><span>營業</span><input type="time" ${a} data-f="open" value="${esc(o.open)}"><span>到</span><input type="time" ${a} data-f="close" value="${esc(o.close)}"></div><div class="full nw"><span>公休</span>${off}</div><div class="full"><span class="warn" data-warn="${i}"></span></div><div class="full">備註 <input ${a} data-f="note" value="${esc(o.note)}" placeholder="必點、要預約…"></div><button class="btn del sm" data-x="dine" data-i="${i}">刪除</button></li>`;
+  return `<li class="item ex fl">${gal('dine',i,o,'l')}${sel}<input ${a} data-f="name" value="${esc(o.name)}" placeholder="店名"><div class="full nw"><span>地址</span><input ${a} data-f="addr" value="${esc(o.addr)}" placeholder="地址"><a class="btn" target="_blank" rel="noopener" data-dmap="${i}">地圖</a></div><div class="full nw"><span>營業</span><input type="time" ${a} data-f="open" value="${esc(o.open)}"><span>到</span><input type="time" ${a} data-f="close" value="${esc(o.close)}"></div><div class="full nw"><span>公休</span>${off}</div><div class="full"><span class="warn" data-warn="${i}"></span></div><div class="full dine-note">備註 <textarea ${a} data-f="note" rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'" placeholder="必點、要預約…">${esc(o.note)}</textarea></div><button class="btn del sm" data-x="dine" data-i="${i}">刪除</button></li>`;
 }
 function fltRow(o,i){
   const a=`data-k="flt" data-i="${i}"`;
