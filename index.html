@@ -112,7 +112,7 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
 .chk{display:inline-flex;gap:4px;align-items:center;margin-right:8px}
 .fx{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px;align-items:end}
 .fx label{display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:0;font-size:14px;color:var(--sub)}
-.fx label input{width:100%;min-width:0;box-sizing:border-box;border-color:var(--line)}
+.fx label input,.fx label select{width:100%;min-width:0;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:transparent;color:inherit;font:inherit}
 .fx label.rate-setting{grid-column:1/-1;display:grid;grid-template-columns:auto minmax(90px,1fr) auto;align-items:center;gap:10px;font-size:16px;color:var(--ink)}
 .fx label.rate-setting input{width:100%;min-width:0}
 .calc{display:grid;grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);gap:8px;align-items:end;margin-bottom:18px}
@@ -346,7 +346,7 @@ function renderOther(){
   }else if(V==='flt'){
     h=`<div class="fbox" id="sum"></div><ul class="items">${S.flt.map(fltRow).join('')||'<li class="empty">還沒有機票，按下方新增。</li>'}</ul><div class="bar"><button class="btn main" data-add="flt">＋ 新增航班</button></div>`;
   }else{
-    h=`<div class="fx"><label>外幣代碼<input data-fx="fc" value="${esc(S.fc)}" maxlength="3" aria-label="外幣代碼"></label><label>本國幣代碼<input data-fx="hc" value="${esc(S.hc)}" maxlength="3" aria-label="本國幣代碼"></label><label class="rate-setting"><span>1 ${esc(S.fc)} ＝</span><input type="number" step="any" data-fx="rate" value="${esc((parseFloat((S.rates||{})[S.fc])>0)?S.rates[S.fc]:S.rate)}" placeholder="例如 0.21" aria-label="每單位外幣可兌換多少本國幣"><span>${esc(S.hc)}</span></label></div><div class="calc"><label>${esc(S.fc)} 金額<input type="number" step="any" id="cf" data-keep="1" placeholder="輸入外幣金額"></label><span>⇄</span><label>${esc(S.hc)} 金額<input type="number" step="any" id="ch" data-keep="1" placeholder="換算結果"></label></div><p class="sub">其他幣別匯率</p><p class="rate-help">每 1 單位外幣可兌換多少 ${esc(S.hc)}。例如：1 USD = 31.5 TWD，就填 31.5。</p><div class="rate-list">${Object.keys(S.rates).map(c=>`<div class="rate-row"><span class="rate-code">${esc(c)}</span><input type="number" step="any" data-rt="${esc(c)}" value="${esc(S.rates[c])}" aria-label="1 ${esc(c)} 可兌換多少 ${esc(S.hc)}" placeholder="輸入匯率"><button class="btn del" data-delrt="${esc(c)}" aria-label="刪除 ${esc(c)}">✕</button></div>`).join('')}</div><p class="rate-help">新增幣別時，請填代碼和匯率兩項。</p><div class="rate-add"><input id="newrt" maxlength="3" placeholder="幣別代碼，例如 USD" aria-label="新增幣別代碼"><input id="newrate" type="number" step="any" placeholder="匯率，例如 31.5" aria-label="新增幣別兌換本國幣匯率"></div><button class="btn" data-addrt="1">＋ 新增幣別與匯率</button><div class="rate-query"><p class="sub">此頁無法自動取得即時匯率，請先查詢再填入。</p><a class="btn" target="_blank" rel="noopener" data-fxlink="1">查詢今日匯率</a></div>`;
+    h=`<div class="fx"><label>外幣代碼<select data-fx="fc" aria-label="選擇外幣代碼">${[...new Set([...CUR,...Object.keys(S.rates||{}),S.fc])].map(c=>`<option value="${esc(c)}"${c===S.fc?' selected':''}>${esc(c)}</option>`).join('')}</select></label><label>本國幣代碼<input data-fx="hc" value="${esc(S.hc)}" maxlength="3" aria-label="本國幣代碼"></label><label class="rate-setting"><span>1 ${esc(S.fc)} ＝</span><input type="number" step="any" data-fx="rate" value="${esc((S.rate!==''&&S.rate!=null)?S.rate:((parseFloat((S.rates||{})[S.fc])>0)?S.rates[S.fc]:''))}" placeholder="例如 0.21" aria-label="每單位外幣可兌換多少本國幣"><span>${esc(S.hc)}</span></label></div><div class="calc"><label>${esc(S.fc)} 金額<input type="number" step="any" id="cf" data-keep="1" placeholder="輸入外幣金額"></label><span>⇄</span><label>${esc(S.hc)} 金額<input type="number" step="any" id="ch" data-keep="1" placeholder="換算結果"></label></div><p class="sub">其他幣別匯率</p><p class="rate-help">每 1 單位外幣可兌換多少 ${esc(S.hc)}。例如：1 USD = 31.5 TWD，就填 31.5。</p><div class="rate-list">${Object.keys(S.rates).map(c=>`<div class="rate-row"><span class="rate-code">${esc(c)}</span><input type="number" step="any" data-rt="${esc(c)}" value="${esc(S.rates[c])}" aria-label="1 ${esc(c)} 可兌換多少 ${esc(S.hc)}" placeholder="輸入匯率"><button class="btn del" data-delrt="${esc(c)}" aria-label="刪除 ${esc(c)}">✕</button></div>`).join('')}</div><p class="rate-help">新增幣別時，請填代碼和匯率兩項。</p><div class="rate-add"><input id="newrt" maxlength="3" placeholder="幣別代碼，例如 USD" aria-label="新增幣別代碼"><input id="newrate" type="number" step="any" placeholder="匯率，例如 31.5" aria-label="新增幣別兌換本國幣匯率"></div><button class="btn" data-addrt="1">＋ 新增幣別與匯率</button><div class="rate-query"><p class="sub">此頁無法自動取得即時匯率，請先查詢再填入。</p><a class="btn" target="_blank" rel="noopener" data-fxlink="1">查詢今日匯率</a></div>`;
   }
   $('oth').innerHTML=h;updateSum();applyRO();paintVotes();paintWarn();paintDist();if(V==='wish')refreshWishVotes();
 }
@@ -694,7 +694,7 @@ oth.addEventListener('input',e=>{
   const t=e.target,d=t.dataset;
   if(t.id==='cf'){$('ch').value=R()?(+t.value*R()).toFixed(2):'';return}
   if(t.id==='ch'){$('cf').value=R()?(+t.value/R()).toFixed(2):'';return}
-  if(d.fx){S[d.fx]=d.fx==='rate'?t.value:t.value.toUpperCase();if(d.fx==='rate'&&S.fc in (S.rates||{}))S.rates[S.fc]=t.value;save();return}
+  if(d.fx&&d.fx!=='fc'){S[d.fx]=d.fx==='rate'?t.value:t.value.toUpperCase();if(d.fx==='rate')S.rates[S.fc]=t.value;save();return}
   if(d.rt){S.rates[d.rt]=t.value;save();return}
   if(d.pp!==undefined){S.people[+d.pp]=t.value;save();return}
   if(!d.k)return;
@@ -713,7 +713,10 @@ oth.addEventListener('change',e=>{
   if(e.target.id==='dfil'){DF=e.target.value;render();return}
   if(e.target.id==='dsort'){DS=e.target.value;render();return}
   if(d.img!==undefined){addImgs(d.img,+d.i,e.target.files);return}
-  if(d.pp!==undefined||d.fx)render();
+  if(d.fx==='fc'){const next=e.target.value;if(S.fc!==next){const oldRate=parseFloat(S.rate);if(oldRate>0)S.rates[S.fc]=oldRate;S.fc=next;S.rate=(parseFloat((S.rates||{})[next])>0)?S.rates[next]:(next==='JPY'?'0.21':'');save();render()}return}
+  if(d.fx==='hc'){S.hc=e.target.value.toUpperCase();save();render();return}
+  if(d.fx)render();
+  if(d.pp!==undefined)render();
 });
 oth.onclick=e=>{
   const zm=e.target.closest('[data-zoom]');if(zm){openZoom(zm.dataset.zoom);return}
