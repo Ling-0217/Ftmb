@@ -143,7 +143,7 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
 const KEY='trip-planner-v1';
 const uid=()=>Math.random().toString(36).slice(2,9);
 const blank=()=>({title:'',start:'',cur:0,days:[{name:'',items:[]}]});
-let S=blank(),RO=true;
+let S=blank(),RO=false;
 const okS=p=>p&&Array.isArray(p.days)&&p.days.length;
 try{const p=JSON.parse(document.getElementById('data').textContent||'null');if(okS(p))S=p}catch(e){}
 const save=()=>{if(RO)return;if(SYNC){schedFlush();return}try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){flash('瀏覽器儲存空間不足，請減少圖片')}};
