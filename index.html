@@ -100,7 +100,7 @@ input:disabled,textarea:disabled,select:disabled{opacity:1;color:inherit;-webkit
 .zm{max-width:100%;text-align:center}.zm img{max-width:100%;max-height:78vh;border-radius:10px}.ov .bar{justify-content:center}
 .btn.del.sm{font-size:12px;padding:0 6px;margin-left:auto}.vrow .vl{flex:1}
 .row>input:not([type=checkbox]){flex:1 1 0;min-width:0;width:auto}.wl input[data-f="t"]{flex:1;min-width:0}
-.ptot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.ptot{display:block;margin:18px 0 0;font-size:14px;color:var(--ink)}
 .fbox{border:2px solid var(--dc);border-radius:12px;background:var(--card);padding:12px 14px;margin-bottom:10px;font-size:14px;line-height:1.7}.cd{font-size:16px;margin-bottom:4px}.cd b{font-size:44px;line-height:1.1;margin-right:4px}
 .mapsvg{margin:0 0 4px}.mapsvg svg{width:100%;height:auto;display:block}.mapph{padding:24px;text-align:center;color:var(--sub);font-size:14px;border:2px dashed var(--dc);border-radius:12px}
 .sub{color:var(--sub);font-size:14px;margin:6px 0}
@@ -522,8 +522,9 @@ function expCalc(){
 }
 const uHome=(n,u)=>{const f=u===S.hc?0:(u===S.fc?R():(parseFloat((S.rates||{})[u])||0));return f?' ≈ '+f2(n*f)+' '+S.hc:''};
 function ptotHtml(){
-  const c=expCalc();
-  return S.people.map((p,i)=>`<div class="pc"><b>${esc(p)}</b><div>已付 ${f2(c.paid[i])} ${esc(c.unit)}${esc(uHome(c.paid[i],c.unit))}</div><div class="sub">應分攤 ${f2(c.owed[i])} ${esc(c.unit)}</div></div>`).join('');
+  const {paid,owed}=expenseTotals();
+  const renderPerson=obj=>{const lines=currencyLines(obj);let total=0,known=false;Object.entries(obj).forEach(([cur,n])=>{const rate=expenseRate(cur);if(rate){total+=n*rate;known=true}});return lines+(known?`<small>${esc(S.hc)} ${f2(total)}</small>`:'')};
+  return `<div class="ptot-head"><span>旅伴</span><span>已付</span><span>應分攤</span></div>`+S.people.map((p,i)=>`<div class="ptot-row"><b>${esc(p)}</b><span>${renderPerson(paid[i])}</span><span>${renderPerson(owed[i])}</span></div>`).join('');
 }
 function settle(){
   const c=expCalc(),P=S.people,u=esc(c.unit);
@@ -612,9 +613,10 @@ function expRow(o,i){
   return `<li class="item ex">${gal('exp',i,o,'s')}<input ${a} data-f="t" value="${esc(o.t)}" placeholder="項目，例如：晚餐"><input type="number" class="amt" ${a} data-f="amt" value="${esc(o.amt)}" placeholder="金額"><select ${a} data-f="cur" aria-label="幣別">${curOpts(cur)}</select><div class="full">付款：${sel}</div><div class="full">分攤：${chk}</div><button class="btn del sm" data-x="exp" data-i="${i}">刪除</button></li>`;
 }
 function settle(){
-  const c=expCalc(),u=esc(c.unit);
-  const warn=c.miss.length?`<div class="warn">缺少 ${esc(c.miss.join('、'))} 的匯率，這些支出尚未計入（請到「匯率」分頁填寫）</div>`:'';
-  return c.tot?`<div>總支出 ${f2(c.tot)} ${u}${esc(uHome(c.tot,c.unit))}</div>`+warn:warn;
+  const {totals}=expenseTotals(),converted=expenseConverted(totals);
+  if(!Object.keys(totals).length)return '<div class="expense-total-label">總支出</div><div class="expense-total-values"><b>尚無支出</b></div>';
+  const warn=expCalc().miss.length?`<div class="warn">缺少 ${esc(expCalc().miss.join('、'))} 的匯率，部分支出尚未計入換算</div>`:'';
+  return `<div class="expense-total-label">總支出</div><div class="expense-total-values">${currencyLines(totals)}</div>`+(converted!==null?`<div class="expense-conversion">全部換算約 ${f2(converted)} ${esc(S.hc)}</div>`:'')+warn;
 }
 function fltSum(){
   const fmt=v=>{const d=new Date(v);return v&&!isNaN(d)?(d.getMonth()+1)+'/'+d.getDate()+'（'+WD[d.getDay()]+'）'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'):'未填'};
