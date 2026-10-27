@@ -119,6 +119,16 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
 .ws-currency span{font-size:14px;color:var(--sub);font-weight:600}.ws-currency b{font-size:22px;line-height:1.25;letter-spacing:-.3px;overflow-wrap:anywhere;color:var(--ink)}.ws-currency small{font-size:12px;color:var(--sub)}.ws-conversion{width:100%;font-size:13px;color:var(--sub);margin-top:4px}.ws-empty{font-size:14px;color:var(--sub)}
 @media(max-width:480px){.ws-currency{gap:6px}.ws-currency b{font-size:20px}.ws-title{font-size:13px}.wish-summary{padding:12px}}
 .wvrow{flex:1 0 100%;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px;color:var(--sub);padding-left:26px}.wvrow .wvlabel{flex:1;min-width:120px}.wvrow button[aria-pressed="true"]{border-color:var(--dc);background:color-mix(in srgb,var(--dc) 20%,white);color:var(--ink);font-weight:700}
+/* Wishlist totals: compact layout matching the reference */
+#wish-summary{background:var(--card);border:2px solid var(--dc);border-radius:14px;padding:14px 16px;margin:0 0 14px}
+#wish-summary .ws-currencies{display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;align-items:baseline;gap:8px 22px}
+#wish-summary .ws-currency{display:inline-flex!important;flex:0 1 auto!important;width:auto!important;align-items:baseline;gap:7px;padding:0;background:transparent;border:0;min-width:0}
+#wish-summary .ws-currency span{font-size:14px;color:var(--sub);font-weight:600}
+#wish-summary .ws-currency b{font-size:22px;line-height:1.2;letter-spacing:-.35px;color:var(--ink)}
+#wish-summary .ws-conversion{display:block;width:100%;font-size:13px;color:var(--sub);margin:4px 0 0}
+#wish-summary .ws-second{border-top:1px solid var(--line);padding-top:12px;margin-top:14px}
+#wish-summary .ws-empty{font-size:13px;color:var(--sub)}
+@media(max-width:480px){#wish-summary{padding:12px}#wish-summary .ws-currencies{gap:8px 16px}#wish-summary .ws-currency b{font-size:20px}}
 
 </style>
 </head>
@@ -289,6 +299,7 @@ if(!window.__wishVotePoll){window.__wishVotePoll=setInterval(()=>{if(V==='wish')
 function renderOther(){
   let h='';
   if(V==='pack'){h=packHtml()}else if(V==='wish'){
+    let wishIdsChanged=false;S.wish.forEach(o=>{if(!o.id){o.id='wish_'+Math.random().toString(36).slice(2)+Date.now().toString(36);wishIdsChanged=true}});if(wishIdsChanged)save();
     const L=S.wish.map((o,i)=>({o,i})).filter(x=>WF==='全部'||(x.o.cat||'其他')===WF);
     h=`<div class="wish-summary" id="wish-summary"><div class="ws-title">預估總額（全部願望）</div><div class="ws-currencies" id="wish-currencies"></div><div class="ws-title ws-second">還沒買的</div><div class="ws-currencies" id="wish-unbought"></div></div><div class="fx"><label>分類<select id="wfil" data-keep="1">${['全部',...WC].map(c=>`<option${c===WF?' selected':''}>${c}</option>`).join('')}</select></label></div><ul class="items">${L.map(x=>wishRow(x.o,x.i)).join('')||'<li class="empty">還沒有項目，按下方新增。</li>'}</ul><div class="bar"><button class="btn main" data-add="wish">＋ 新增想買的東西</button></div><div class="total" id="sum"></div>`;
   }else if(V==='exp'){
