@@ -110,7 +110,23 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
 .ppl{display:flex;flex-wrap:wrap;gap:6px}.ppl input{width:7em;border-color:var(--line)}
 .ex{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.ex>input:first-child{flex:1 1 140px;font-weight:600}.ex .amt{flex:0 0 110px}.ex .full{flex:1 0 100%;font-size:14px;color:var(--sub)}.ex select{width:auto;border-color:var(--line);background:var(--card)}
 .chk{display:inline-flex;gap:4px;align-items:center;margin-right:8px}
-.fx,.calc{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}.fx label,.calc label{display:flex;gap:6px;align-items:center}.fx input,.calc input{width:7em;border-color:var(--line)}
+.fx{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px;align-items:end}
+.fx label{display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:0;font-size:14px;color:var(--sub)}
+.fx label input{width:100%;min-width:0;box-sizing:border-box;border-color:var(--line)}
+.fx label.rate-setting{grid-column:1/-1;display:grid;grid-template-columns:auto minmax(90px,1fr) auto;align-items:center;gap:10px;font-size:16px;color:var(--ink)}
+.fx label.rate-setting input{width:100%;min-width:0}
+.calc{display:grid;grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);gap:8px;align-items:end;margin-bottom:18px}
+.calc label{display:flex;flex-direction:column;gap:6px;min-width:0;color:var(--sub);font-size:14px}
+.calc input{width:100%;min-width:0;box-sizing:border-box;border-color:var(--line)}
+.calc>span{align-self:center;text-align:center;padding-top:20px;color:var(--sub)}
+.rate-list{display:flex;flex-direction:column;gap:8px;margin:8px 0 12px}
+.rate-row{display:grid;grid-template-columns:minmax(64px,.7fr) minmax(0,1.3fr) 38px;gap:8px;align-items:center}
+.rate-row .rate-code{font-weight:600}
+.rate-row input{width:100%;min-width:0;box-sizing:border-box;border-color:var(--line)}
+.rate-add{display:grid;grid-template-columns:minmax(70px,.7fr) minmax(0,1.3fr);gap:8px;margin:8px 0}
+.rate-add input{width:100%;min-width:0;box-sizing:border-box}
+.rate-help{font-size:13px;color:var(--sub);margin:2px 0 8px}
+@media(max-width:420px){.fx{gap:8px}.fx label.rate-setting{gap:6px;font-size:14px}.rate-row{grid-template-columns:minmax(58px,.7fr) minmax(0,1.3fr) 34px}.rate-add{grid-template-columns:minmax(70px,.7fr) minmax(0,1.3fr)}}
 .ro input[data-keep]{border-color:var(--line)!important}.ro .btn.del,.ro [data-add]{display:none}
 .thumb{flex:none;width:56px;height:56px;border-radius:8px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;background:var(--ft);font-size:18px}
 .thumb img{width:100%;height:100%;object-fit:cover}
@@ -330,7 +346,7 @@ function renderOther(){
   }else if(V==='flt'){
     h=`<div class="fbox" id="sum"></div><ul class="items">${S.flt.map(fltRow).join('')||'<li class="empty">還沒有機票，按下方新增。</li>'}</ul><div class="bar"><button class="btn main" data-add="flt">＋ 新增航班</button></div>`;
   }else{
-    h=`<div class="fx"><label>外幣<input data-fx="fc" value="${esc(S.fc)}" maxlength="3"></label><label>本國幣<input data-fx="hc" value="${esc(S.hc)}" maxlength="3"></label><label>1 ${esc(S.fc)} =<input type="number" step="any" data-fx="rate" value="${esc(S.rate)}" placeholder="例如 0.21"> ${esc(S.hc)}</label></div><div class="calc"><label>${esc(S.fc)}<input type="number" step="any" id="cf" data-keep="1" placeholder="0"></label><span>⇄</span><label>${esc(S.hc)}<input type="number" step="any" id="ch" data-keep="1" placeholder="0"></label></div><p class="sub">其他幣別匯率（1 單位外幣 = 多少 ${esc(S.hc)}）</p><div class="ppl">${Object.keys(S.rates).map(c=>`<span class="pp">${esc(c)} <input type="number" step="any" data-rt="${esc(c)}" value="${esc(S.rates[c])}" aria-label="${esc(c)} 匯率"><button class="btn del" data-delrt="${esc(c)}">✕</button></span>`).join('')}<input id="newrt" maxlength="3" placeholder="例如 USD"><button class="btn" data-addrt="1">＋ 幣別</button></div><p class="sub">這個頁面無法自動取得即時匯率，請先查好再填入上方。 <a class="btn" target="_blank" rel="noopener" data-fxlink="1">查詢今日匯率</a></p>`;
+    h=`<div class="fx"><label>外幣代碼<input data-fx="fc" value="${esc(S.fc)}" maxlength="3" aria-label="外幣代碼"></label><label>本國幣代碼<input data-fx="hc" value="${esc(S.hc)}" maxlength="3" aria-label="本國幣代碼"></label><label class="rate-setting"><span>1 ${esc(S.fc)} ＝</span><input type="number" step="any" data-fx="rate" value="${esc(S.rate)}" placeholder="例如 0.21" aria-label="每單位外幣可兌換多少本國幣"><span>${esc(S.hc)}</span></label></div><div class="calc"><label>${esc(S.fc)} 金額<input type="number" step="any" id="cf" data-keep="1" placeholder="輸入外幣金額"></label><span>⇄</span><label>${esc(S.hc)} 金額<input type="number" step="any" id="ch" data-keep="1" placeholder="換算結果"></label></div><p class="sub">其他幣別匯率</p><p class="rate-help">每 1 單位外幣可兌換多少 ${esc(S.hc)}。例如：1 USD = 31.5 TWD，就填 31.5。</p><div class="rate-list">${Object.keys(S.rates).map(c=>`<div class="rate-row"><span class="rate-code">${esc(c)}</span><input type="number" step="any" data-rt="${esc(c)}" value="${esc(S.rates[c])}" aria-label="1 ${esc(c)} 可兌換多少 ${esc(S.hc)}" placeholder="輸入匯率"><button class="btn del" data-delrt="${esc(c)}" aria-label="刪除 ${esc(c)}">✕</button></div>`).join('')}</div><p class="rate-help">新增幣別時，請填代碼和匯率兩項。</p><div class="rate-add"><input id="newrt" maxlength="3" placeholder="幣別代碼，例如 USD" aria-label="新增幣別代碼"><input id="newrate" type="number" step="any" placeholder="匯率，例如 31.5" aria-label="新增幣別兌換本國幣匯率"></div><button class="btn" data-addrt="1">＋ 新增幣別與匯率</button><p class="sub">此頁無法自動取得即時匯率，請先查詢再填入。 <a class="btn" target="_blank" rel="noopener" data-fxlink="1">查詢今日匯率</a></p>`;
   }
   $('oth').innerHTML=h;updateSum();applyRO();paintVotes();paintWarn();paintDist();if(V==='wish')refreshWishVotes();
 }
@@ -702,7 +718,7 @@ oth.addEventListener('change',e=>{
 oth.onclick=e=>{
   const zm=e.target.closest('[data-zoom]');if(zm){openZoom(zm.dataset.zoom);return}
   const ar=e.target.closest('[data-addrt]');
-  if(ar){const c=$('newrt').value.trim().toUpperCase();if(c&&!(c in S.rates)){S.rates[c]='';save();render()}return}
+  if(ar){const c=$('newrt').value.trim().toUpperCase(),rate=parseFloat($('newrate').value);if(!/^[A-Z]{3}$/.test(c)){flash('請輸入 3 個英文字母的幣別代碼，例如 USD');$('newrt').focus();return}if(!(rate>0)){flash('請輸入大於 0 的匯率，例如 31.5');$('newrate').focus();return}if(c===S.hc){flash('這是本國幣，不需要另外新增匯率');return}if(c in S.rates){flash('這個幣別已存在，請直接修改上方匯率');return}S.rates[c]=rate;save();render();flash('已新增 '+c+' 匯率');return}
   const dr=e.target.closest('[data-delrt]');
   if(dr){delete S.rates[dr.dataset.delrt];save();render();return}
   const ac=e.target.closest('[data-addcat]');
