@@ -848,7 +848,7 @@ render();
 async function cloudApplySession(session){
   cloudSession=session||null;
   if(!cloudSession){
-    RO=true;render();cloudStatus('尚未登入：目前不能編輯雲端行程。點「登入並同步」取得登入連結。');
+    RO=false;try{const raw=localStorage.getItem(KEY);if(raw){const local=JSON.parse(raw);if(okS(local))S=local}}catch(e){}render();cloudStatus('尚未登入：目前可在此裝置編輯並自動儲存；登入後才會同步到雲端。');
     const b=document.getElementById('cloudLogin');if(b)b.textContent='登入並同步';
     return;
   }
@@ -905,7 +905,7 @@ document.getElementById('cloudLogin').addEventListener('click',async()=>{
     if(!cloudBooted){cloudBooted=true;sb.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>cloudApplySession(session),0)})}
   }catch(e){
     console.error('Supabase boot failed',e);
-    RO=true;render();cloudStatus('雲端服務初始化失敗：'+(e.message||'請重新整理'));
+    RO=false;try{const raw=localStorage.getItem(KEY);if(raw){const local=JSON.parse(raw);if(okS(local))S=local}}catch(e){}render();cloudStatus('雲端服務暫時無法連線：目前仍可在此裝置編輯並儲存。');
   }
 })();
 function renderMap(){}
