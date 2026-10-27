@@ -42,7 +42,7 @@ textarea{resize:vertical;min-height:2.4em;color:var(--sub);font-size:14px}
 .btn.main{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:700}
 .bar{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .empty{color:var(--sub);padding:18px 4px;text-align:center}
-.foot{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--sub);font-size:13px}
+.cloud-login-box{display:flex;gap:8px;align-items:end;flex-wrap:wrap;width:100%;margin:8px 0}.cloud-login-box label{display:block;font-size:13px;color:var(--sub);width:100%}.cloud-login-box input{flex:1;min-width:220px;background:var(--card);border:1px solid var(--line);padding:10px 12px}.cloud-login-box button{flex:none}.foot{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--sub);font-size:13px}
 .meta{flex-wrap:wrap}.pw{grid-column:2;display:flex;align-items:center;gap:6px}.pw a,.leg a{flex:none;text-decoration:none;font-size:13px}
 .leg{list-style:none;display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:2px 0 10px 12px;padding:8px 10px;border:1px dashed var(--line);border-radius:10px;background:var(--ft);font-size:14px;color:var(--sub)}
 .leg select,.leg input{width:auto;border-color:var(--line);padding:3px 6px;background:var(--card)}.leg input{width:64px}
@@ -176,7 +176,7 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
   <section id="day" class="day" style=""></section>
   <section id="oth" class="day" style="display: none;"><div class="fx"><label>外幣<input data-fx="fc" value="JPY" maxlength="3"></label><label>本國幣<input data-fx="hc" value="TWD" maxlength="3"></label><label>1 JPY =<input type="number" step="any" data-fx="rate" value="0.21" placeholder="例如 0.21"> TWD</label></div><div class="calc"><label>JPY<input type="number" step="any" id="cf" data-keep="1" placeholder="0"></label><span>⇄</span><label>TWD<input type="number" step="any" id="ch" data-keep="1" placeholder="0"></label></div><p class="sub">其他幣別匯率（1 單位外幣 = 多少 TWD）</p><div class="ppl"><input id="newrt" maxlength="3" placeholder="例如 USD"><button class="btn" data-addrt="1">＋ 幣別</button></div><p class="sub">這個頁面無法自動取得即時匯率，請先查好再填入上方。 <a class="btn" target="_blank" rel="noopener" data-fxlink="1">查詢今日匯率</a></p></section>
   <div class="foot">
-    <button class="btn main" id="cloudLogin" type="button">登入並同步</button>
+    <div class="cloud-login-box" id="cloudLoginBox"><label for="cloudEmail">電子郵件</label><input id="cloudEmail" type="email" autocomplete="email" inputmode="email" placeholder="輸入已獲授權的電子郵件"><button class="btn main" id="cloudLogin" type="button">寄送登入連結</button></div>
     <span id="cloudStatus" aria-live="polite">尚未登入：修改前請先登入，才能保存到雲端。</span>
     <button class="btn main" id="pub" hidden="">發布更新給同行的人</button>
     <button class="btn" id="copy">複製全部內容</button>
@@ -887,8 +887,9 @@ document.getElementById('cloudLogin').addEventListener('click',async()=>{
     if(error){cloudStatus('登出失敗：'+error.message);return}
     await cloudApplySession(null);return;
   }
-  const email=prompt('輸入已獲授權的電子郵件。系統會寄送一次性登入連結，不需要 Google Cloud，也不要提供密碼。','l2014576@gmail.com');
-  if(!email||!email.trim())return;
+  const emailInput=document.getElementById('cloudEmail');
+  const email=emailInput?emailInput.value:'';
+  if(!email||!email.trim()){cloudStatus('請先輸入已獲授權的電子郵件。');if(emailInput)emailInput.focus();return;}
   cloudStatus('正在寄送登入連結…');
   const {error}=await sb.auth.signInWithOtp({email:email.trim(),options:{emailRedirectTo:'https://okinawa-itinerary-two.vercel.app/'}});
   if(error){cloudStatus('無法寄送登入連結：'+error.message);return}
