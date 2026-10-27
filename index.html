@@ -113,10 +113,11 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
 .ex>input[data-f="t"]{flex:1 1 0!important;min-width:0}
 
 .wl select[data-f="cur"],.ex select[data-f="cur"]{width:52px!important;flex:0 0 52px!important;font-size:13px!important;padding:6px 0 6px 4px!important}
-.wish-summary{border:2px solid var(--dc);border-radius:12px;padding:14px;margin:0 0 14px;background:var(--card)}
-.ws-title{font-size:14px;color:var(--sub);margin-bottom:8px}.ws-second{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
-.ws-currencies{display:flex;flex-wrap:wrap;gap:8px}.ws-currency{display:flex;align-items:baseline;gap:7px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;min-width:120px;max-width:100%;background:var(--bg)}
-.ws-currency span{font-size:13px;color:var(--sub)}.ws-currency b{font-size:21px;overflow-wrap:anywhere}.ws-currency small{font-size:11px;color:var(--sub)}.ws-currency{flex-wrap:wrap;min-width:0}.ws-currency .ws-converted{flex-basis:100%;font-size:12px;color:var(--sub)}.ws-empty{font-size:14px;color:var(--sub)}
+.wish-summary{border:0;border-radius:0;padding:0 0 14px;margin:0 0 12px;background:transparent}
+.ws-title{font-size:14px;font-weight:600;color:var(--sub);margin:0 0 8px}.ws-second{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.ws-currencies{display:flex;flex-direction:column;gap:0}.ws-currency{display:flex;align-items:baseline;gap:8px;border:0;border-radius:0;padding:5px 0;min-width:0;max-width:100%;background:transparent;flex-wrap:wrap}
+.ws-currency span{font-size:14px;color:var(--sub);font-weight:600;min-width:38px}.ws-currency b{font-size:22px;line-height:1.25;letter-spacing:-.3px;overflow-wrap:anywhere;color:var(--ink)}.ws-currency small{font-size:12px;color:var(--sub)}.ws-currency .ws-converted{flex-basis:auto;font-size:12px;color:var(--sub);margin-left:2px}.ws-empty{font-size:14px;color:var(--sub)}
+@media(max-width:480px){.ws-currency{gap:6px}.ws-currency b{font-size:20px}.ws-title{font-size:13px}}
 
 </style>
 </head>
@@ -310,7 +311,7 @@ function settle(){
 function updateSum(){
   const s=$('sum');if(!s)return;
   if(V==='pack'){const n=S.pack.filter(o=>o.done).length;s.textContent=S.pack.length?`已打包 ${n} / ${S.pack.length}`:''}
-  if(V==='wish'){const groups=list=>{const g={};list.forEach(o=>{const cur=o.cur||S.fc||'JPY';g[cur]=(g[cur]||0)+(+o.price||0)});return Object.entries(g).map(([cur,total])=>{const converted=cur===S.hc?0:(cur===S.fc?R():(parseFloat((S.rates||{})[cur])||0));const home=converted?`<small class="ws-converted">約 ${f2(total*converted)} ${esc(S.hc)}</small>`:'';return `<div class="ws-currency"><span>${esc(cur)}</span><b>${f2(total)}</b><small>${esc(cur)}</small>${home}</div>`}).join('')||'<div class="ws-empty">尚無金額</div>'};const a=$('wish-currencies'),b=$('wish-unbought');if(a)a.innerHTML=groups(S.wish);if(b)b.innerHTML=groups(S.wish.filter(o=>!o.done));s.textContent=''}
+  if(V==='wish'){const groups=list=>{const g={};list.forEach(o=>{const cur=o.cur||S.fc||'JPY';g[cur]=(g[cur]||0)+(+o.price||0)});return Object.entries(g).map(([cur,total])=>{const converted=cur===S.hc?0:(cur===S.fc?R():(parseFloat((S.rates||{})[cur])||0));const home=converted?`<small class="ws-converted">約 ${f2(total*converted)} ${esc(S.hc)}</small>`:'';return `<div class="ws-currency"><span>${esc(cur)}</span><b>${f2(total)}</b>${home}</div>`}).join('')||'<div class="ws-empty">尚無金額</div>'};const a=$('wish-currencies'),b=$('wish-unbought');if(a)a.innerHTML=groups(S.wish);if(b)b.innerHTML=groups(S.wish.filter(o=>!o.done));s.textContent=''}
   if(V==='exp'){s.innerHTML=settle();const pt=$('ptot');if(pt)pt.innerHTML=ptotHtml()}
   if(V==='flt')s.innerHTML=fltSum();
   if(V==='dine')s.textContent=S.dine.length?'共 '+S.dine.length+' 家備選餐廳':'';
