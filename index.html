@@ -958,6 +958,12 @@ $('copy').onclick=async()=>{
     document.body.appendChild(o);o.querySelector('textarea').select();
   }
 };
+
+// Auto-size restaurant note fields on first render and after rerender.
+function fitRestaurantNotes(root=document){root.querySelectorAll('.dine-note textarea').forEach(t=>{t.style.height='auto';t.style.height=Math.max(t.scrollHeight,44)+'px';});}
+document.addEventListener('input',e=>{if(e.target.matches('.dine-note textarea')){e.target.style.height='auto';e.target.style.height=Math.max(e.target.scrollHeight,44)+'px';}});
+fitRestaurantNotes();
+new MutationObserver(()=>fitRestaurantNotes()).observe(document.body,{childList:true,subtree:true});
 </script>
 
 
