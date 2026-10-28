@@ -959,11 +959,19 @@ $('copy').onclick=async()=>{
   }
 };
 
-// Auto-size restaurant note fields on first render and after rerender.
-function fitRestaurantNotes(root=document){root.querySelectorAll('.dine-note textarea').forEach(t=>{t.style.height='auto';t.style.height=Math.max(t.scrollHeight,44)+'px';});}
-document.addEventListener('input',e=>{if(e.target.matches('.dine-note textarea')){e.target.style.height='auto';e.target.style.height=Math.max(e.target.scrollHeight,44)+'px';}});
+// Auto-size restaurant notes after render and on every keystroke.
+function fitRestaurantNote(t){
+  if(!t||!t.matches('.dine-note textarea'))return;
+  t.style.setProperty('height','1px','important');
+  const h=Math.max(t.scrollHeight,44);
+  t.style.setProperty('height',h+'px','important');
+  t.style.setProperty('max-height','none','important');
+  t.style.setProperty('overflow-y','hidden','important');
+}
+function fitRestaurantNotes(root=document){root.querySelectorAll('.dine-note textarea').forEach(fitRestaurantNote);}
+document.addEventListener('input',e=>{if(e.target.matches('.dine-note textarea')){fitRestaurantNote(e.target);requestAnimationFrame(()=>fitRestaurantNote(e.target));}});
 fitRestaurantNotes();
-new MutationObserver(()=>fitRestaurantNotes()).observe(document.body,{childList:true,subtree:true});
+new MutationObserver(()=>requestAnimationFrame(()=>fitRestaurantNotes())).observe(document.body,{childList:true,subtree:true});
 </script>
 
 
