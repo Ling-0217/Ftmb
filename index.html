@@ -42,7 +42,7 @@ textarea{resize:vertical;min-height:2.4em;color:var(--sub);font-size:14px}
 .btn.main{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:700}
 .bar{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .empty{color:var(--sub);padding:18px 4px;text-align:center}
-.cloud-login-box{display:flex;gap:8px;align-items:end;flex-wrap:wrap;width:100%;margin:8px 0}.cloud-login-box label{display:block;font-size:13px;color:var(--sub);width:100%}.cloud-login-box input{flex:1;min-width:220px;background:var(--card);border:1px solid var(--line);padding:10px 12px}.cloud-login-box button{flex:none}.foot{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--sub);font-size:13px}
+.share-manager,.share-migrate{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--card);margin:8px 0}.share-create{display:grid;grid-template-columns:minmax(0,1fr) 112px auto;gap:7px}.share-create input,.share-create select{min-width:0;width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;background:var(--ft);color:var(--ink)}.share-list{display:grid;gap:7px;margin-top:10px}.share-row{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:8px}.share-row small{display:block;color:var(--sub);font-size:12px}.share-row-actions{display:flex;gap:5px}.share-new-link{margin-top:9px;padding:9px;border-radius:8px;background:var(--ft);overflow-wrap:anywhere;font-size:13px}.share-new-link button{margin-top:6px}@media(max-width:480px){.share-create{grid-template-columns:1fr 1fr}.share-create input{grid-column:1/-1}.share-create button{grid-column:1/-1}.share-row{align-items:flex-start;flex-direction:column}.share-row-actions{width:100%}}.cloud-login-box{display:flex;gap:8px;align-items:end;flex-wrap:wrap;width:100%;margin:8px 0}.cloud-login-box label{display:block;font-size:13px;color:var(--sub);width:100%}.cloud-login-box input{flex:1;min-width:220px;background:var(--card);border:1px solid var(--line);padding:10px 12px}.cloud-login-box button{flex:none}.foot{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--sub);font-size:13px}
 .meta{flex-wrap:wrap}.pw{grid-column:2;display:flex;align-items:center;gap:6px}.pw a,.leg a{flex:none;text-decoration:none;font-size:13px}
 .leg{list-style:none;display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:2px 0 10px 12px;padding:8px 10px;border:1px dashed var(--line);border-radius:10px;background:var(--ft);font-size:14px;color:var(--sub)}
 .leg select,.leg input{width:auto;border-color:var(--line);padding:3px 6px;background:var(--card)}.leg input{width:64px}
@@ -212,6 +212,12 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
   <div class="foot">
     <div class="cloud-login-box" id="cloudLoginBox"><label for="cloudEmail">電子郵件</label><input id="cloudEmail" type="email" autocomplete="email" inputmode="email" placeholder="輸入已獲授權的電子郵件"><button class="btn main" id="cloudLogin" type="button">寄送登入連結</button></div>
     <span id="cloudStatus" aria-live="polite">尚未登入：修改前請先登入，才能保存到雲端。</span>
+    <section id="shareManager" class="share-manager" hidden>
+      <b>同行分享管理</b><p class="sub">建立不同權限的分享連結。連結請只傳給同行的人。</p>
+      <div class="share-create"><input id="share-label" placeholder="分享名稱，例如：小美"><select id="share-role"><option value="editor">共同編輯</option><option value="voter">願望登記</option><option value="viewer">唯讀</option></select><button class="btn main" id="share-create-btn">建立連結</button></div>
+      <div id="share-new-link" class="share-new-link" hidden></div><div data-share-list class="share-list">載入分享清單中…</div>
+    </section>
+    <section id="shareMigrate" class="share-migrate" hidden><b>偵測到這台手機有尚未同步的舊資料</b><p class="sub">如果這台是你之前編輯行程的手機，請上傳本機資料；若要以雲端版本為準，請忽略此提示。</p><button class="btn main" id="share-upload-local">將這台手機的資料上傳到雲端</button></section>
     <button class="btn main" id="pub" hidden="">發布更新給同行的人</button>
     <button class="btn" id="copy">複製全部內容</button>
     <button class="btn danger" id="reset">清除全部</button>
@@ -231,10 +237,49 @@ const blank=()=>({title:'',start:'',cur:0,days:[{name:'',items:[]}]});
 let S=blank(),RO=true;
 const okS=p=>p&&Array.isArray(p.days)&&p.days.length;
 try{const p=JSON.parse(document.getElementById('data').textContent||'null');if(okS(p))S=p}catch(e){}
+let SHARE_TOKEN='',SHARE_ROLE='',shareTimer=0,sharePoll=0,shareDirty=false,pendingLocal=null,shareUpdated='';
 const save=()=>{if(RO)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){flash('瀏覽器儲存空間不足，請減少圖片')}
-  if(cloudSession&&sb){clearTimeout(cloudTimer);cloudTimer=setTimeout(cloudSaveNow,700)}
-  else cloudStatus('目前只存在此裝置；登入後才會同步到雲端。')
+  if(SHARE_TOKEN&&sb&&['owner','editor'].includes(SHARE_ROLE)){shareDirty=true;clearTimeout(shareTimer);shareTimer=setTimeout(cloudShareSaveNow,650)}
+  else if(cloudSession&&sb){clearTimeout(cloudTimer);cloudTimer=setTimeout(cloudSaveNow,700)}
+  else cloudStatus('尚未使用共同編輯分享連結，這次修改只存在此裝置。')
 };
+async function cloudShareSaveNow(){
+  if(!SHARE_TOKEN||!sb||!['owner','editor'].includes(SHARE_ROLE)||!shareDirty)return;
+  const snapshot=JSON.parse(JSON.stringify(S));shareDirty=false;cloudStatus('正在同步到雲端…');
+  try{const {data,error}=await sb.rpc('trip_share_save',{p_token:SHARE_TOKEN,p_data:snapshot});if(error)throw error;shareUpdated=data?.updated_at||new Date().toISOString();cloudStatus('已同步到雲端 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));}
+  catch(e){shareDirty=true;cloudStatus('雲端同步失敗：'+(e.message||'請重新整理'));flash('同步失敗，請保留此頁不要關閉',5000)}
+}
+async function pollSharedState(){
+  if(!SHARE_TOKEN||!sb||document.hidden)return;
+  try{const {data,error}=await sb.rpc('trip_share_get',{p_token:SHARE_TOKEN});if(error)throw error;
+    if(data.updated_at&&data.updated_at!==shareUpdated&&!shareDirty){if(okS(data.data)){S=data.data;shareUpdated=data.updated_at;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}render();cloudStatus('已取得最新共同資料 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));}}
+  }catch(e){cloudStatus('同步連線中斷：'+(e.message||'請檢查分享連結'))}
+}
+function shareUrl(token){return location.origin+location.pathname+'?share='+encodeURIComponent(token)}
+async function renderShareManager(){
+  const box=document.getElementById('shareManager');if(!box||SHARE_ROLE!=='owner'||!SHARE_TOKEN)return;
+  const {data,error}=await sb.rpc('trip_share_list',{p_owner_token:SHARE_TOKEN});
+  if(error){box.querySelector('[data-share-list]').textContent='無法讀取分享清單：'+error.message;return}
+  const rows=Array.isArray(data)?data:[];
+  box.querySelector('[data-share-list]').innerHTML=rows.map(x=>'<div class="share-row"><div><b>'+esc(x.label||'未命名分享')+'</b><small>'+({editor:'共同編輯',voter:'願望登記',viewer:'唯讀'}[x.role]||x.role)+' · '+(x.revoked_at?'已撤銷':'使用中')+'</small></div><div class="share-row-actions">'+(!x.revoked_at?'<button class="btn del" data-share-revoke="'+esc(x.id)+'">撤銷</button>':'')+'</div></div>').join('')||'<p class="sub">目前還沒有建立分享連結。</p>';
+}
+async function loadShareMode(){
+  const params=new URLSearchParams(location.search);let token=params.get('share')||'';
+  if(token){SHARE_TOKEN=token;try{localStorage.setItem('trip-share-token',token)}catch(e){}history.replaceState({},'',location.pathname+location.hash);}
+  else{try{SHARE_TOKEN=localStorage.getItem('trip-share-token')||''}catch(e){}}
+  if(!SHARE_TOKEN)return false;
+  const {data,error}=await sb.rpc('trip_share_get',{p_token:SHARE_TOKEN});if(error)throw error;
+  SHARE_ROLE=data.role;shareUpdated=data.updated_at||'';S=data.data;RO=!['owner','editor'].includes(SHARE_ROLE);
+  try{const raw=localStorage.getItem(KEY);if(raw){const local=JSON.parse(raw);if(okS(local)&&JSON.stringify(local)!==JSON.stringify(S)&&SHARE_ROLE==='owner')pendingLocal=local;}}catch(e){}
+  render();cloudStatus(({owner:'管理者',editor:'共同編輯',voter:'願望登記',viewer:'唯讀'}[SHARE_ROLE]||'分享')+'模式 · 雲端資料已載入');
+  const login=document.getElementById('cloudLoginBox');if(login)login.hidden=true;
+  const manager=document.getElementById('shareManager');if(manager)manager.hidden=SHARE_ROLE!=='owner';
+  const migrate=document.getElementById('shareMigrate');if(migrate)migrate.hidden=!pendingLocal;
+  if(SHARE_ROLE==='owner')renderShareManager();
+  if(sharePoll)clearInterval(sharePoll);sharePoll=setInterval(pollSharedState,4000);
+  return true;
+}
+
 async function cloudSaveNow(){
   if(!sb||!cloudSession||RO)return;
   cloudStatus('正在保存到雲端…');
@@ -958,7 +1003,7 @@ render();
 async function cloudApplySession(session){
   cloudSession=session||null;
   if(!cloudSession){
-    RO=false;try{const raw=localStorage.getItem(KEY);if(raw){const local=JSON.parse(raw);if(okS(local))S=local}}catch(e){}render();cloudStatus('尚未登入：目前可在此裝置編輯並自動儲存；登入後才會同步到雲端。');
+    RO=true;render();cloudStatus('請使用管理者或同行分享連結進入，才能讀取共同資料。');
     const b=document.getElementById('cloudLogin');if(b)b.textContent='登入並同步';
     return;
   }
@@ -990,6 +1035,20 @@ async function cloudApplySession(session){
     RO=true;render();cloudStatus('雲端連線失敗：'+(e.message||'請稍後重試'));
   }
 }
+document.addEventListener('click',async e=>{
+  const create=e.target.closest('#share-create-btn');
+  if(create){
+    const role=document.getElementById('share-role').value,label=document.getElementById('share-label').value.trim();create.disabled=true;
+    try{const {data,error}=await sb.rpc('trip_share_create',{p_owner_token:SHARE_TOKEN,p_role:role,p_label:label});if(error)throw error;
+      const url=shareUrl(data.token),box=document.getElementById('share-new-link');box.hidden=false;box.innerHTML='<b>已建立'+({editor:'共同編輯',voter:'願望登記',viewer:'唯讀'}[role])+'連結</b><div>'+esc(url)+'</div><button class="btn" data-copy-share-url="'+esc(url)+'">複製連結</button>';document.getElementById('share-label').value='';renderShareManager();
+    }catch(err){flash('建立分享失敗：'+err.message,5000)}finally{create.disabled=false}
+  }
+  const copy=e.target.closest('[data-copy-share-url]');
+  if(copy){try{await navigator.clipboard.writeText(copy.dataset.copyShareUrl);flash('已複製分享連結')}catch(err){flash(copy.dataset.copyShareUrl,7000)}}
+  const revoke=e.target.closest('[data-share-revoke]');
+  if(revoke){if(!confirm('確定撤銷這條分享連結？撤銷後對方將無法再讀取或修改。'))return;const {error}=await sb.rpc('trip_share_revoke',{p_owner_token:SHARE_TOKEN,p_share_id:revoke.dataset.shareRevoke});if(error){flash('撤銷失敗：'+error.message);return}renderShareManager();flash('分享連結已撤銷')}
+  if(e.target.closest('#share-upload-local')&&pendingLocal){S=pendingLocal;pendingLocal=null;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(err){}const m=document.getElementById('shareMigrate');if(m)m.hidden=true;shareDirty=true;await cloudShareSaveNow();render();flash('已將本機資料上傳到雲端')}
+});
 document.getElementById('cloudLogin').addEventListener('click',async()=>{
   if(!sb){flash('雲端服務尚未載入，請重新整理');return}
   if(cloudSession){
@@ -1011,8 +1070,9 @@ document.getElementById('cloudLogin').addEventListener('click',async()=>{
     if(!window.supabase||!window.supabase.createClient)throw new Error('Supabase 程式載入失敗');
     sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
     const {data:{session}}=await sb.auth.getSession();
-    await cloudApplySession(session);
-    if(!cloudBooted){cloudBooted=true;sb.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>cloudApplySession(session),0)})}
+    const shared=await loadShareMode();
+    if(!shared)await cloudApplySession(session);
+    if(!cloudBooted){cloudBooted=true;sb.auth.onAuthStateChange((_event,session)=>{if(!SHARE_TOKEN)setTimeout(()=>cloudApplySession(session),0)})}
   }catch(e){
     console.error('Supabase boot failed',e);
     RO=false;try{const raw=localStorage.getItem(KEY);if(raw){const local=JSON.parse(raw);if(okS(local))S=local}}catch(e){}render();cloudStatus('雲端服務暫時無法連線：目前仍可在此裝置編輯並儲存。');
