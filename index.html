@@ -167,17 +167,18 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
 .fl .full.dine-note{display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:0;}
 .fl .full.dine-note textarea{display:block!important;width:100%!important;box-sizing:border-box!important;height:auto;min-height:44px;max-height:none!important;overflow-y:hidden!important;resize:none;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5;}
 
-.notice-intro{color:var(--sub);font-size:14px;margin:0 0 14px}
-.notice-list{display:grid;gap:14px}
-.notice-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:12px}
-.notice-head{display:grid;grid-template-columns:minmax(0,1fr) 104px auto;gap:8px;align-items:center}
-.notice-head input{font-weight:700;font-size:17px;border-color:var(--line);min-width:0}
-.notice-head select{border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--ft);min-width:0}
-.notice-field{display:grid;gap:5px;color:var(--sub);font-size:13px}
-.notice-field textarea{border:1px solid var(--line);background:var(--ft);color:var(--ink);font-size:14px;min-height:54px;white-space:pre-wrap}
-.notice-links,.notice-videos{display:grid;gap:7px;font-size:13px;overflow-wrap:anywhere}
-.notice-links a,.notice-videos a{color:var(--ink);text-decoration:underline}
-.notice-video{position:relative;width:100%;aspect-ratio:16/9;background:#111;border-radius:10px;overflow:hidden}
+.notice-intro{color:var(--sub);font-size:13px;margin:0 0 10px}
+.notice-list{display:grid;gap:10px}
+.notice-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;display:grid;gap:8px}
+.notice-head{display:grid;grid-template-columns:minmax(0,1fr) 90px auto;gap:6px;align-items:center}
+.notice-head input{font-weight:700;font-size:16px;border-color:var(--line);min-width:0;padding:7px}
+.notice-head select{border:1px solid var(--line);border-radius:8px;padding:7px;background:var(--ft);min-width:0;font-size:14px}
+.notice-field{display:grid;gap:3px;color:var(--sub);font-size:12px}
+.notice-field textarea{border:1px solid var(--line);background:var(--ft);color:var(--ink);font-size:14px;line-height:1.4;min-height:0;height:auto;padding:7px 9px;resize:vertical;overflow-wrap:anywhere}
+.notice-field textarea[data-f="content"]{min-height:68px}
+.notice-field textarea[data-f="links"],.notice-field textarea[data-f="videos"],.notice-field textarea[data-f="note"]{min-height:40px;max-height:92px}
+.notice-embeds{display:grid;gap:8px}
+.notice-video{position:relative;width:100%;aspect-ratio:16/9;background:#111;border-radius:9px;overflow:hidden}
 .notice-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 @media(max-width:420px){.notice-head{grid-template-columns:minmax(0,1fr) auto}.notice-head select{grid-column:1}.notice-head .btn{grid-column:2;grid-row:2}}
 </style>
@@ -376,18 +377,16 @@ function noticeCard(o,i,cats){
   const safeLink=u=>/^https?:\/\//i.test((u||'').trim())?(u||'').trim():'';
   const youtubeId=u=>{
     try{
-      const x=new URL(u);
-      let id='';
+      const x=new URL(u);let id='';
       if(x.hostname==='youtu.be')id=x.pathname.slice(1).split('/')[0];
       else if(/(^|\.)youtube(-nocookie)?\.com$/i.test(x.hostname))id=x.searchParams.get('v')||x.pathname.match(/\/(?:embed|shorts)\/([^/?]+)/)?.[1]||'';
       return /^[A-Za-z0-9_-]{11}$/.test(id)?id:'';
     }catch(e){return ''}
   };
-  const links=(o.links||'').split(/\r?\n/).map(safeLink).filter(Boolean);
   const videos=(o.videos||'').split(/\r?\n/).map(safeLink).filter(Boolean);
-  const media=links.length?'<div class="notice-links"><b>相關網址</b>'+links.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(u)+'</a>').join('')+'</div>':'';
-  const vids=videos.length?'<div class="notice-videos"><b>影片連結</b>'+videos.map(u=>{const id=youtubeId(u);return id?'<div class="notice-video"><iframe src="https://www.youtube-nocookie.com/embed/'+id+'" title="注意事項影片" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div><a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">在 YouTube 開啟影片</a>':'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(u)+'</a>'}).join('')+'</div>':'';
-  return '<article class="notice-card"><div class="notice-head"><input '+a+' data-f="title" value="'+esc(o.title||'')+'" placeholder="注意事項標題，例如：日本機車交通規則" aria-label="標題"><select '+a+' data-f="cat" aria-label="分類">'+cats.map(c=>'<option value="'+c+'"'+(c===(o.cat||'其他')?' selected':'')+'>'+c+'</option>').join('')+'</select><button class="btn del" data-x="notices" data-i="'+i+'">刪除</button></div><label class="notice-field">內容<textarea '+a+' data-f="content" rows="3" placeholder="寫下規定、提醒或旅行中可能遇到的問題">'+esc(o.content||'')+'</textarea></label><label class="notice-field">相關網址<textarea '+a+' data-f="links" rows="2" placeholder="每行貼上一個網址">'+esc(o.links||'')+'</textarea></label>'+media+'<label class="notice-field">影片連結<textarea '+a+' data-f="videos" rows="2" placeholder="每行貼上一個 YouTube 或其他影片網址">'+esc(o.videos||'')+'</textarea></label>'+vids+'<label class="notice-field">補充備註<textarea '+a+' data-f="note" rows="2" placeholder="其他補充">'+esc(o.note||'')+'</textarea></label></article>';
+  const embeds=videos.map(u=>({u,id:youtubeId(u)})).filter(x=>x.id);
+  const vids=embeds.length?'<div class="notice-embeds">'+embeds.map(x=>'<div class="notice-video"><iframe src="https://www.youtube-nocookie.com/embed/'+x.id+'" title="注意事項影片" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>').join('')+'</div>':'';
+  return '<article class="notice-card"><div class="notice-head"><input '+a+' data-f="title" value="'+esc(o.title||'')+'" placeholder="標題，例如：日本機車交通規則" aria-label="標題"><select '+a+' data-f="cat" aria-label="分類">'+cats.map(c=>'<option value="'+c+'"'+(c===(o.cat||'其他')?' selected':'')+'>'+c+'</option>').join('')+'</select><button class="btn del" data-x="notices" data-i="'+i+'">刪除</button></div><label class="notice-field">內容<textarea '+a+' data-f="content" rows="2" placeholder="寫下規定、提醒或可能遇到的問題">'+esc(o.content||'')+'</textarea></label><label class="notice-field">相關網址<textarea '+a+' data-f="links" rows="1" placeholder="貼上網址（每行一個）">'+esc(o.links||'')+'</textarea></label><label class="notice-field">影片連結<textarea '+a+' data-f="videos" rows="1" placeholder="貼上 YouTube 網址；其他影片網址保留文字即可">'+esc(o.videos||'')+'</textarea></label>'+vids+'<label class="notice-field">補充備註<textarea '+a+' data-f="note" rows="1" placeholder="其他補充">'+esc(o.note||'')+'</textarea></label></article>';
 }
 function renderOther(){
   let h='';
