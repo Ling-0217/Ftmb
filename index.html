@@ -373,18 +373,18 @@ async function toggleWebWishVote(itemId){if(WEB_WISH_BUSY)return;WEB_WISH_BUSY=t
 if(!window.__wishVotePoll){window.__wishVotePoll=setInterval(()=>{if(V==='wish')refreshWishVotes()},5000)}
 function noticeCard(o,i,cats){
   const a='data-k="notices" data-i="'+i+'"';
-  const safeLink=u=>/^https?:\\/\\//i.test((u||'').trim())?(u||'').trim():'';
+  const safeLink=u=>/^https?:\/\//i.test((u||'').trim())?(u||'').trim():'';
   const youtubeId=u=>{
     try{
       const x=new URL(u);
       let id='';
       if(x.hostname==='youtu.be')id=x.pathname.slice(1).split('/')[0];
-      else if(/(^|\\.)youtube(-nocookie)?\\.com$/i.test(x.hostname))id=x.searchParams.get('v')||x.pathname.match(/\\/(?:embed|shorts)\\/([^/?]+)/)?.[1]||'';
+      else if(/(^|\.)youtube(-nocookie)?\.com$/i.test(x.hostname))id=x.searchParams.get('v')||x.pathname.match(/\/(?:embed|shorts)\/([^/?]+)/)?.[1]||'';
       return /^[A-Za-z0-9_-]{11}$/.test(id)?id:'';
     }catch(e){return ''}
   };
-  const links=(o.links||'').split(/\\r?\\n/).map(safeLink).filter(Boolean);
-  const videos=(o.videos||'').split(/\\r?\\n/).map(safeLink).filter(Boolean);
+  const links=(o.links||'').split(/\r?\n/).map(safeLink).filter(Boolean);
+  const videos=(o.videos||'').split(/\r?\n/).map(safeLink).filter(Boolean);
   const media=links.length?'<div class="notice-links"><b>相關網址</b>'+links.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(u)+'</a>').join('')+'</div>':'';
   const vids=videos.length?'<div class="notice-videos"><b>影片連結</b>'+videos.map(u=>{const id=youtubeId(u);return id?'<div class="notice-video"><iframe src="https://www.youtube-nocookie.com/embed/'+id+'" title="注意事項影片" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div><a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">在 YouTube 開啟影片</a>':'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(u)+'</a>'}).join('')+'</div>':'';
   return '<article class="notice-card"><div class="notice-head"><input '+a+' data-f="title" value="'+esc(o.title||'')+'" placeholder="注意事項標題，例如：日本機車交通規則" aria-label="標題"><select '+a+' data-f="cat" aria-label="分類">'+cats.map(c=>'<option value="'+c+'"'+(c===(o.cat||'其他')?' selected':'')+'>'+c+'</option>').join('')+'</select><button class="btn del" data-x="notices" data-i="'+i+'">刪除</button></div><label class="notice-field">內容<textarea '+a+' data-f="content" rows="3" placeholder="寫下規定、提醒或旅行中可能遇到的問題">'+esc(o.content||'')+'</textarea></label><label class="notice-field">相關網址<textarea '+a+' data-f="links" rows="2" placeholder="每行貼上一個網址">'+esc(o.links||'')+'</textarea></label>'+media+'<label class="notice-field">影片連結<textarea '+a+' data-f="videos" rows="2" placeholder="每行貼上一個 YouTube 或其他影片網址">'+esc(o.videos||'')+'</textarea></label>'+vids+'<label class="notice-field">補充備註<textarea '+a+' data-f="note" rows="2" placeholder="其他補充">'+esc(o.note||'')+'</textarea></label></article>';
