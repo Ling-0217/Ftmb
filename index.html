@@ -425,12 +425,25 @@ function expRow(o,i){
   const chk=S.people.map((p,j)=>`<label class="chk"><input type="checkbox" ${a} data-f="split" data-n="${j}"${(o.split||[]).includes(j)?' checked':''}>${esc(p)}</label>`).join('');
   return `<li class="item ex"><input ${a} data-f="t" value="${esc(o.t)}" placeholder="項目，例如：晚餐"><input type="number" class="amt" ${a} data-f="amt" value="${esc(o.amt)}" placeholder="金額">${currency}<div class="full">付款：${sel}　分攤：${chk}</div><button class="btn del" data-x="exp" data-i="${i}">刪除</button></li>`;
 }
-const WISH_API='https://xjnkfwykezzcxmmpsrgi.supabase.co/rest/v1/wish_votes';
-const WISH_KEY='sb_publishable_-7pt5czVhb0w_Ow0VSkZ-Q_FbPsvWdO';
 let WEB_WISH_VOTES=[],WEB_WISH_BUSY=false;
 function wishIdentity(){let id='',name='';try{id=localStorage.getItem('wish-voter-id')||'';name=localStorage.getItem('wish-voter-name')||''}catch(e){}if(!id){id='v_'+Math.random().toString(36).slice(2)+Date.now().toString(36);try{localStorage.setItem('wish-voter-id',id)}catch(e){}}return {id,name}}
-async function refreshWishVotes(){if(V!=='wish')return;try{const r=await fetch(WISH_API+'?select=item_id,voter_id,voter_name&order=created_at.asc',{headers:{apikey:WISH_KEY,Authorization:'Bearer '+WISH_KEY}});if(!r.ok)throw Error('load');WEB_WISH_VOTES=await r.json();document.querySelectorAll('[data-wvote]').forEach(b=>{const id=b.dataset.wvote,me=wishIdentity(),votes=WEB_WISH_VOTES.filter(v=>v.item_id===id),mine=votes.some(v=>v.voter_id===me.id);b.textContent=mine?'♥ 我想買':'♡ 我也想買';b.setAttribute('aria-pressed',String(mine));const l=[...document.querySelectorAll('[data-wvlabel]')].find(x=>x.dataset.wvlabel===id);if(l)l.textContent=votes.length?'想買 '+votes.length+' 人：'+votes.map(v=>v.voter_id===me.id?'我':v.voter_name).join('、'):'還沒有人標記想買'});}catch(e){document.querySelectorAll('[data-wvlabel]').forEach(l=>l.textContent='登記功能暫時無法連線')}}
-async function toggleWebWishVote(itemId){if(WEB_WISH_BUSY)return;WEB_WISH_BUSY=true;try{const me=wishIdentity();if(!me.name){const n=prompt('輸入你的旅伴名稱，讓大家知道是誰想買：');if(!n||!n.trim()){WEB_WISH_BUSY=false;return}me.name=n.trim().slice(0,40);try{localStorage.setItem('wish-voter-name',me.name)}catch(e){}}const mine=WEB_WISH_VOTES.some(v=>v.item_id===itemId&&v.voter_id===me.id);const headers={apikey:WISH_KEY,Authorization:'Bearer '+WISH_KEY,'Content-Type':'application/json',Prefer:'return=minimal'};let r;if(mine){r=await fetch(WISH_API+'?item_id=eq.'+encodeURIComponent(itemId)+'&voter_id=eq.'+encodeURIComponent(me.id),{method:'DELETE',headers})}else{r=await fetch(WISH_API,{method:'POST',headers,body:JSON.stringify({item_id:itemId,voter_id:me.id,voter_name:me.name})})}if(!r.ok)throw Error('save');await refreshWishVotes()}catch(e){flash('登記失敗，請稍後再試')}finally{WEB_WISH_BUSY=false}}
+async function refreshWishVotes(){
+  if(V!=='wish')return;
+  if(!SHARE_TOKEN||!sb){document.querySelectorAll('[data-wvlabel]').forEach(l=>l.textContent='請使用分享連結查看登記');return}
+  try{const {data,error}=await sb.rpc('trip_wish_votes_get',{p_token:SHARE_TOKEN});if(error)throw error;WEB_WISH_VOTES=Array.isArray(data)?data:[];
+    document.querySelectorAll('[data-wvote]').forEach(b=>{const id=b.dataset.wvote,me=wishIdentity(),votes=WEB_WISH_VOTES.filter(v=>v.item_id===id),mine=votes.some(v=>v.voter_id===me.id);b.textContent=mine?'♥ 我想買':'♡ 我也想買';b.setAttribute('aria-pressed',String(mine));const l=[...document.querySelectorAll('[data-wvlabel]')].find(x=>x.dataset.wvlabel===id);if(l)l.textContent=votes.length?'想買 '+votes.length+' 人：'+votes.map(v=>v.voter_id===me.id?'我':v.voter_name).join('、'):'還沒有人標記想買'});
+  }catch(e){document.querySelectorAll('[data-wvlabel]').forEach(l=>l.textContent='登記功能暫時無法連線')}
+}
+async function toggleWebWishVote(itemId){
+  if(WEB_WISH_BUSY)return;
+  if(!SHARE_TOKEN||!['owner','editor','voter'].includes(SHARE_ROLE)){flash('此分享權限不能登記願望');return}
+  WEB_WISH_BUSY=true;
+  try{const me=wishIdentity();if(!me.name){const n=prompt('輸入你的旅伴名稱，讓大家知道是誰想買：');if(!n||!n.trim()){WEB_WISH_BUSY=false;return}me.name=n.trim().slice(0,40);try{localStorage.setItem('wish-voter-name',me.name)}catch(e){}}
+    const mine=WEB_WISH_VOTES.some(v=>v.item_id===itemId&&v.voter_id===me.id);
+    const {error}=mine?await sb.rpc('trip_wish_vote_delete',{p_token:SHARE_TOKEN,p_item_id:itemId,p_voter_id:me.id}):await sb.rpc('trip_wish_vote_add',{p_token:SHARE_TOKEN,p_item_id:itemId,p_voter_id:me.id,p_voter_name:me.name});
+    if(error)throw error;await refreshWishVotes();
+  }catch(e){flash('登記失敗：'+(e.message||'請稍後再試'))}finally{WEB_WISH_BUSY=false}
+}
 if(!window.__wishVotePoll){window.__wishVotePoll=setInterval(()=>{if(V==='wish')refreshWishVotes()},5000)}
 function noticeCard(o,i,cats){
   const safeLinks=v=>(v||'').split(/\r?\n/).map(u=>u.trim()).filter(u=>/^https?:\/\//i.test(u));
@@ -755,7 +768,7 @@ function openZoom(key){
 function wishRow(o,i){
   const a=`data-k="wish" data-i="${i}"`,c=o.cat||'其他',cur=o.cur||S.fc;
   const sel=`<select ${a} data-f="cat" aria-label="分類">${WC.map(x=>`<option${x===c?' selected':''}>${x}</option>`).join('')}</select>`;
-  const vote=o.id?`<button class="btn" data-wvote="${esc(o.id)}" aria-pressed="false">♡ 我也想買</button><span class="wvlabel" data-wvlabel="${esc(o.id)}">載入登記資料…</span>`:'<span class="wvlabel">尚未建立項目識別碼</span>';
+  const vote=o.id?(`<span class="wvlabel" data-wvlabel="${esc(o.id)}">載入登記資料…</span>`+(['owner','editor','voter'].includes(SHARE_ROLE)?`<button class="btn" data-wvote="${esc(o.id)}" aria-pressed="false">♡ 我也想買</button>`:'')):'<span class="wvlabel">尚未建立項目識別碼</span>';
   return `<li class="row wr"><input type="checkbox" ${a} data-f="done"${o.done?' checked':''} aria-label="已買"><div class="wb">${gal('wish',i,o,'m')}<div class="wl"><input ${a} data-f="t" value="${esc(o.t)}" placeholder="想買什麼？"><input type="number" class="amt" ${a} data-f="price" value="${esc(o.price)}" placeholder="金額" aria-label="預估價格"><select ${a} data-f="cur" aria-label="幣別">${curOpts(cur)}</select></div><div class="wl">${sel}</div><textarea ${a} data-f="note" placeholder="說明（尺寸、顏色、哪裡買…）">${esc(o.note)}</textarea></div><div class="wvrow">${vote}<button class="btn del sm" data-x="wish" data-i="${i}">刪除</button></div></li>`;
 }
 function packRow(o,i){
