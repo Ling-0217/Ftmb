@@ -177,9 +177,9 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
 .notice-field textarea{border:1px solid var(--line);background:var(--ft);color:var(--ink);font-size:14px;line-height:1.4;min-height:0;height:auto;padding:7px 9px;resize:vertical;overflow-wrap:anywhere}
 .notice-field textarea[data-f="content"]{min-height:68px}
 .notice-field textarea[data-f="links"],.notice-field textarea[data-f="videos"],.notice-field textarea[data-f="note"]{min-height:40px;max-height:92px}
-.notice-embeds{display:grid;gap:8px}
-.notice-video{position:relative;width:100%;aspect-ratio:16/9;background:#111;border-radius:9px;overflow:hidden}
-.notice-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.notice-link-buttons{display:flex;flex-wrap:wrap;gap:7px;margin-top:-2px}
+.notice-link-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:38px;padding:7px 13px;border:1px solid var(--acc);border-radius:9px;background:color-mix(in srgb,var(--acc) 16%,var(--card));color:var(--ink);font-size:14px;font-weight:700;text-decoration:none;overflow-wrap:anywhere}
+.notice-link-btn:active{transform:scale(.98)}
 @media(max-width:420px){.notice-head{grid-template-columns:minmax(0,1fr) auto}.notice-head select{grid-column:1}.notice-head .btn{grid-column:2;grid-row:2}}
 </style>
 </head>
@@ -374,19 +374,12 @@ async function toggleWebWishVote(itemId){if(WEB_WISH_BUSY)return;WEB_WISH_BUSY=t
 if(!window.__wishVotePoll){window.__wishVotePoll=setInterval(()=>{if(V==='wish')refreshWishVotes()},5000)}
 function noticeCard(o,i,cats){
   const a='data-k="notices" data-i="'+i+'"';
-  const safeLink=u=>/^https?:\/\//i.test((u||'').trim())?(u||'').trim():'';
-  const youtubeId=u=>{
-    try{
-      const x=new URL(u);let id='';
-      if(x.hostname==='youtu.be')id=x.pathname.slice(1).split('/')[0];
-      else if(/(^|\.)youtube(-nocookie)?\.com$/i.test(x.hostname))id=x.searchParams.get('v')||x.pathname.match(/\/(?:embed|shorts)\/([^/?]+)/)?.[1]||'';
-      return /^[A-Za-z0-9_-]{11}$/.test(id)?id:'';
-    }catch(e){return ''}
+  const safeLinks=v=>(v||'').split(/\r?\n/).map(u=>u.trim()).filter(u=>/^https?:\/\//i.test(u));
+  const linkButtons=(value,label,kind)=>{
+    const urls=safeLinks(value);
+    return urls.length?'<div class="notice-link-buttons">'+urls.map((u,n)=>'<a class="notice-link-btn" href="'+esc(u)+'" target="_blank" rel="noopener noreferrer"><span>'+(kind==='video'?'▶':'↗')+'</span> '+label+(urls.length>1?' '+(n+1):'')+'</a>').join('')+'</div>':'';
   };
-  const videos=(o.videos||'').split(/\r?\n/).map(safeLink).filter(Boolean);
-  const embeds=videos.map(u=>({u,id:youtubeId(u)})).filter(x=>x.id);
-  const vids=embeds.length?'<div class="notice-embeds">'+embeds.map(x=>'<div class="notice-video"><iframe src="https://www.youtube-nocookie.com/embed/'+x.id+'" title="注意事項影片" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>').join('')+'</div>':'';
-  return '<article class="notice-card"><div class="notice-head"><input '+a+' data-f="title" value="'+esc(o.title||'')+'" placeholder="標題，例如：日本機車交通規則" aria-label="標題"><select '+a+' data-f="cat" aria-label="分類">'+cats.map(c=>'<option value="'+c+'"'+(c===(o.cat||'其他')?' selected':'')+'>'+c+'</option>').join('')+'</select><button class="btn del" data-x="notices" data-i="'+i+'">刪除</button></div><label class="notice-field">內容<textarea '+a+' data-f="content" rows="2" placeholder="寫下規定、提醒或可能遇到的問題">'+esc(o.content||'')+'</textarea></label><label class="notice-field">相關網址<textarea '+a+' data-f="links" rows="1" placeholder="貼上網址（每行一個）">'+esc(o.links||'')+'</textarea></label><label class="notice-field">影片連結<textarea '+a+' data-f="videos" rows="1" placeholder="貼上 YouTube 網址；其他影片網址保留文字即可">'+esc(o.videos||'')+'</textarea></label>'+vids+'<label class="notice-field">補充備註<textarea '+a+' data-f="note" rows="1" placeholder="其他補充">'+esc(o.note||'')+'</textarea></label></article>';
+  return '<article class="notice-card"><div class="notice-head"><input '+a+' data-f="title" value="'+esc(o.title||'')+'" placeholder="標題，例如：日本機車交通規則" aria-label="標題"><select '+a+' data-f="cat" aria-label="分類">'+cats.map(c=>'<option value="'+c+'"'+(c===(o.cat||'其他')?' selected':'')+'>'+c+'</option>').join('')+'</select><button class="btn del" data-x="notices" data-i="'+i+'">刪除</button></div><label class="notice-field">內容<textarea '+a+' data-f="content" rows="2" placeholder="寫下規定、提醒或可能遇到的問題">'+esc(o.content||'')+'</textarea></label><label class="notice-field">相關網址<textarea '+a+' data-f="links" rows="1" placeholder="貼上網址（每行一個）">'+esc(o.links||'')+'</textarea></label>'+linkButtons(o.links,'開啟網址','link')+'<label class="notice-field">影片連結<textarea '+a+' data-f="videos" rows="1" placeholder="貼上影片網址（每行一個）">'+esc(o.videos||'')+'</textarea></label>'+linkButtons(o.videos,'開啟影片','video')+'<label class="notice-field">補充備註<textarea '+a+' data-f="note" rows="1" placeholder="其他補充">'+esc(o.note||'')+'</textarea></label></article>';
 }
 function renderOther(){
   let h='';
