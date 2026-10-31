@@ -167,6 +167,13 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
 .fl .full.dine-note{display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:0;}
 .fl .full.dine-note textarea{display:block!important;width:100%!important;box-sizing:border-box!important;height:auto;min-height:44px;max-height:none!important;overflow-y:hidden!important;resize:none;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5;}
 
+.collection-filter{display:grid;grid-template-columns:minmax(0,1fr) 132px;gap:8px;margin:0 0 12px;align-items:end}
+.collection-filter input,.collection-filter select{width:100%;min-width:0;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink);padding:10px;font-size:14px}
+.collection-filter label{display:grid;gap:3px;color:var(--sub);font-size:12px}
+.dine-filter{grid-template-columns:minmax(0,1fr) 110px 120px}
+.collection-filter~.items>li[hidden]{display:none!important}
+[data-collection-no-results][hidden]{display:none!important}
+@media(max-width:420px){.collection-filter{grid-template-columns:minmax(0,1fr) 108px;gap:6px}.dine-filter{grid-template-columns:minmax(0,1fr) 108px}.dine-filter label:last-child{grid-column:1/-1}.collection-filter input,.collection-filter select{font-size:13px;padding:9px 8px}}
 .notice-intro{color:var(--sub);font-size:13px;margin:0 0 10px}
 .notice-editor{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:13px;display:grid;gap:10px;margin-bottom:14px}
 .notice-editor label{display:grid;gap:4px;color:var(--sub);font-size:13px}
@@ -390,6 +397,27 @@ function noticeCard(o,i,cats){
   const linkPart=(o.links||o.videos)?'<div class="notice-links-row">'+(o.links?'<div class="notice-link-group"><span class="notice-saved-label">相關網址</span>'+buttons(o.links,'開啟網址','link')+'</div>':'')+(o.videos?'<div class="notice-link-group"><span class="notice-saved-label">影音連結</span>'+buttons(o.videos,'開啟影音','video')+'</div>':'')+'</div>':'';
   return '<article class="notice-card" data-notice-card data-cat="'+esc(o.cat||'其他')+'" data-search="'+esc(search)+'"><div class="notice-saved-head"><div><strong>'+esc(o.title||'未命名注意事項')+'</strong><span class="notice-category">'+esc(o.cat||'其他')+'</span></div><div class="notice-actions"><button class="btn" data-notice-edit="'+i+'">編輯</button><button class="btn del" data-x="notices" data-i="'+i+'">刪除</button></div></div>'+(o.content?'<div class="notice-saved-content">'+esc(o.content).replace(/\n/g,'<br>')+'</div>':'')+linkPart+(o.note?'<div class="notice-saved-label">補充備註</div><div class="notice-saved-note">'+esc(o.note).replace(/\n/g,'<br>')+'</div>':'')+'</article>';
 }
+function applyCollectionSearch(kind){
+  const id=kind==='wish'?'wish-search':'dine-search';
+  const q=(document.getElementById(id)?.value||'').trim().toLowerCase();
+  const data=kind==='wish'?S.wish:S.dine;
+  const list=oth.querySelector('.items');
+  if(!list)return;
+  let shown=0;
+  [...list.children].forEach(li=>{
+    const idx=Number(li.dataset.i);
+    if(!Number.isInteger(idx)||!data[idx])return;
+    const o=data[idx];
+    const hay=(kind==='wish'?[o.t,o.cat,o.note,o.price]:[o.name,o.cat,o.addr,o.note,o.open,o.close]).join(' ').toLowerCase();
+    li.hidden=!!q&&!hay.includes(q);
+    if(!li.hidden)shown++;
+  });
+  let empty=oth.querySelector('[data-collection-no-results]');
+  if(!empty){
+    empty=document.createElement('li');empty.className='empty';empty.dataset.collectionNoResults='1';empty.textContent='找不到符合條件的項目。';list.appendChild(empty);
+  }
+  empty.hidden=shown>0||!q;
+}
 function applyNoticeFilters(){
   const q=(document.getElementById('notice-search')?.value||'').trim().toLowerCase();
   const cat=document.getElementById('notice-filter-cat')?.value||'全部';
@@ -408,7 +436,7 @@ function renderOther(){
   if(V==='pack'){h=packHtml()}else if(V==='wish'){
     let wishIdsChanged=false;S.wish.forEach(o=>{if(!o.id){o.id='wish_'+Math.random().toString(36).slice(2)+Date.now().toString(36);wishIdsChanged=true}});if(wishIdsChanged)save();
     const L=S.wish.map((o,i)=>({o,i})).filter(x=>WF==='全部'||(x.o.cat||'其他')===WF);
-    h=`<div class="wish-summary" id="wish-summary"><div class="ws-title">預估總額（全部願望）</div><div class="ws-currencies" id="wish-currencies"></div><div class="ws-title ws-second">還沒買的</div><div class="ws-currencies" id="wish-unbought"></div></div><div class="fx"><label>分類<select id="wfil" data-keep="1">${['全部',...WC].map(c=>`<option${c===WF?' selected':''}>${c}</option>`).join('')}</select></label></div><ul class="items">${L.map(x=>wishRow(x.o,x.i)).join('')||'<li class="empty">還沒有項目，按下方新增。</li>'}</ul><div class="bar"><button class="btn main" data-add="wish">＋ 新增想買的東西</button></div><div class="total" id="sum"></div>`;
+    h=`<div class="wish-summary" id="wish-summary"><div class="ws-title">預估總額（全部願望）</div><div class="ws-currencies" id="wish-currencies"></div><div class="ws-title ws-second">還沒買的</div><div class="ws-currencies" id="wish-unbought"></div></div><div class="collection-filter"><input id="wish-search" type="search" placeholder="搜尋願望名稱、分類或備註…" aria-label="搜尋願望"><label>分類<select id="wfil" data-keep="1">${['全部',...WC].map(c=>`<option${c===WF?' selected':''}>${c}</option>`).join('')}</select></label></div><ul class="items">${L.map(x=>wishRow(x.o,x.i)).join('')||'<li class="empty">還沒有項目，按下方新增。</li>'}</ul><div class="bar"><button class="btn main" data-add="wish">＋ 新增想買的東西</button></div><div class="total" id="sum"></div>`;
   }else if(V==='exp'){
     h=`<div class="expense-summary"><div class="total" id="sum"></div><div id="ptot" class="ptot"></div></div><p class="sub">旅伴（可改名、可刪除）</p><div class="ppl">${S.people.map((p,i)=>`<span class="pp"><input data-pp="${i}" value="${esc(p)}" aria-label="旅伴"><button class="btn del" data-delp="${i}" aria-label="刪除旅伴"${S.people.length<2?' disabled':''}>✕</button></span>`).join('')}<button class="btn" data-add="ppl">＋ 旅伴</button></div><p class="sub">支出</p><ul class="items">${S.exp.map(expRow).join('')}</ul><div class="bar"><button class="btn main" data-add="exp">＋ 新增支出</button></div>`;
   }else if(V==='dine'){
@@ -416,7 +444,7 @@ function renderOther(){
     const K={cat:x=>DC.indexOf(x.o.cat),name:x=>x.o.name||'',open:x=>x.o.open||'99:99',close:x=>x.o.close||'99:99'}[DS];
     if(K)L.sort((x,y)=>{const a=K(x),b=K(y);return a<b?-1:a>b?1:0});
     const opt=(arr,cur)=>arr.map(([v,t])=>`<option value="${v}"${v===cur?' selected':''}>${t}</option>`).join('');
-    h=`<div class="fx"><label>分類<select id="dfil" data-keep="1">${opt([['全部','全部'],...DC.map(c=>[c,c])],DF)}</select></label><label>排序<select id="dsort" data-keep="1">${opt([['add','加入順序'],['cat','分類'],['name','店名'],['open','開門時間'],['close','打烊時間']],DS)}</select></label></div><ul class="items">${L.map(x=>dineRow(x.o,x.i)).join('')||'<li class="empty">還沒有備選餐廳，按下方新增。</li>'}</ul><div class="bar"><button class="btn main" data-add="dine">＋ 新增餐廳</button></div><div class="total" id="sum"></div>`;
+    h=`<div class="collection-filter dine-filter"><input id="dine-search" type="search" placeholder="搜尋餐廳名稱、地址或備註…" aria-label="搜尋餐廳"><label>分類<select id="dfil" data-keep="1">${opt([['全部','全部'],...DC.map(c=>[c,c])],DF)}</select></label><label>排序<select id="dsort" data-keep="1">${opt([['add','加入順序'],['cat','分類'],['name','店名'],['open','開門時間'],['close','打烊時間']],DS)}</select></label></div><ul class="items">${L.map(x=>dineRow(x.o,x.i)).join('')||'<li class="empty">還沒有備選餐廳，按下方新增。</li>'}</ul><div class="bar"><button class="btn main" data-add="dine">＋ 新增餐廳</button></div><div class="total" id="sum"></div>`;
   }else if(V==='flt'){
     h=`<div class="fbox" id="sum"></div><ul class="items">${S.flt.map(fltRow).join('')||'<li class="empty">還沒有機票，按下方新增。</li>'}</ul><div class="bar"><button class="btn main" data-add="flt">＋ 新增航班</button></div>`;
   }else if(V==='notice'){
@@ -770,6 +798,8 @@ oth.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='newcat'){c
 oth.addEventListener('input',e=>{
   const t=e.target,d=t.dataset;
   if(t.id==='notice-search'){applyNoticeFilters();return}
+  if(t.id==='wish-search'){applyCollectionSearch('wish');return}
+  if(t.id==='dine-search'){applyCollectionSearch('dine');return}
   if(t.id==='cf'){$('ch').value=R()?(+t.value*R()).toFixed(2):'';return}
   if(t.id==='ch'){$('cf').value=R()?(+t.value/R()).toFixed(2):'';return}
   if(d.fx&&d.fx!=='fc'){S[d.fx]=d.fx==='rate'?t.value:t.value.toUpperCase();if(d.fx==='rate')S.rates[S.fc]=t.value;save();return}
