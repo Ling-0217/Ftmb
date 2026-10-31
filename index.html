@@ -166,6 +166,20 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
 /* Restaurant notes must grow to show all entered text. */
 .fl .full.dine-note{display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:0;}
 .fl .full.dine-note textarea{display:block!important;width:100%!important;box-sizing:border-box!important;height:auto;min-height:44px;max-height:none!important;overflow-y:hidden!important;resize:none;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5;}
+
+.notice-intro{color:var(--sub);font-size:14px;margin:0 0 14px}
+.notice-list{display:grid;gap:14px}
+.notice-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:12px}
+.notice-head{display:grid;grid-template-columns:minmax(0,1fr) 104px auto;gap:8px;align-items:center}
+.notice-head input{font-weight:700;font-size:17px;border-color:var(--line);min-width:0}
+.notice-head select{border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--ft);min-width:0}
+.notice-field{display:grid;gap:5px;color:var(--sub);font-size:13px}
+.notice-field textarea{border:1px solid var(--line);background:var(--ft);color:var(--ink);font-size:14px;min-height:54px;white-space:pre-wrap}
+.notice-links,.notice-videos{display:grid;gap:7px;font-size:13px;overflow-wrap:anywhere}
+.notice-links a,.notice-videos a{color:var(--ink);text-decoration:underline}
+.notice-video{position:relative;width:100%;aspect-ratio:16/9;background:#111;border-radius:10px;overflow:hidden}
+.notice-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+@media(max-width:420px){.notice-head{grid-template-columns:minmax(0,1fr) auto}.notice-head select{grid-column:1}.notice-head .btn{grid-column:2;grid-row:2}}
 </style>
 </head>
 <body>
@@ -174,7 +188,7 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
   <div id="mapbar" class="mapbar" style=""></div>
   <div id="mapsvg" class="mapsvg" style=""></div>
   <div id="mapcap" class="sub" style=""></div>
-  <div id="nav" class="tabs" role="tablist"><button class="tab" role="tab" aria-selected="true" data-v="plan">行程</button><button class="tab" role="tab" aria-selected="false" data-v="flt">機票</button><button class="tab" role="tab" aria-selected="false" data-v="dine">餐廳</button><button class="tab" role="tab" aria-selected="false" data-v="pack">行李</button><button class="tab" role="tab" aria-selected="false" data-v="wish">願望</button><button class="tab" role="tab" aria-selected="false" data-v="exp">旅費</button><button class="tab" role="tab" aria-selected="false" data-v="fx">匯率</button></div>
+  <div id="nav" class="tabs" role="tablist"><button class="tab" role="tab" aria-selected="true" data-v="plan">行程</button><button class="tab" role="tab" aria-selected="false" data-v="dine">餐廳</button><button class="tab" role="tab" aria-selected="false" data-v="wish">願望</button><button class="tab" role="tab" aria-selected="false" data-v="exp">旅費</button><button class="tab" role="tab" aria-selected="false" data-v="flt">機票</button><button class="tab" role="tab" aria-selected="false" data-v="pack">行李</button><button class="tab" role="tab" aria-selected="false" data-v="notice">注意事項</button><button class="tab" role="tab" aria-selected="false" data-v="fx">匯率</button></div>
   <div class="meta box" style=""><label>目的地<input id="dest" placeholder="例如：沖繩"></label><label>出發日<input id="start" type="date"></label><label>回國日<input id="end" type="date"></label><div id="dinfo" class="dinfo"></div></div>
   <div id="tabs" class="tabs" role="tablist" style=""></div>
   <section id="day" class="day" style=""></section>
@@ -331,11 +345,11 @@ $('copy').onclick=async()=>{
 $('reset').onclick=async()=>{if(await ask('清除全部行程並重新開始？')){S=blank();save();render()}};
 let V='plan';let CANVOTE=true;
 const DAYC=['#C9A9A6','#A8B5A2','#9DB1BF','#B7A3B5','#D1BFA3','#C9A58C','#8FA9A5'];
-const SECC={dine:'#C9A58C',flt:'#9DB1BF',pack:'#A8B5A2',wish:'#C9A9A6',exp:'#D1BFA3',fx:'#B7A3B5'};
+const SECC={dine:'#C9A58C',flt:'#9DB1BF',pack:'#A8B5A2',wish:'#C9A9A6',exp:'#D1BFA3',notice:'#B7A3B5',fx:'#B7A3B5'};
 const setDC=c=>document.documentElement.style.setProperty('--dc',c);
-const SEC={plan:'行程',flt:'機票',dine:'餐廳',pack:'行李',wish:'願望',exp:'旅費',fx:'匯率'};
+const SEC={plan:'行程',dine:'餐廳',wish:'願望',exp:'旅費',flt:'機票',pack:'行李',notice:'注意事項',fx:'匯率'};
 function renderNav(){$('nav').innerHTML=Object.entries(SEC).map(([k,v])=>`<button class="tab" role="tab" aria-selected="${k===V}" data-v="${k}">${v}</button>`).join('')}
-function norm(){S.rates??={};if(!(parseFloat(S.rates.JPY)>0)&&parseFloat(S.rate)>0)S.rates.JPY=parseFloat(S.rate);S.rate='';[S.wish,S.dine,S.exp,S.flt].forEach(L=>(L||[]).forEach(o=>{if(o.img&&!o.imgs){o.imgs=[o.img];delete o.img}}));S.packCats??=['日用品','票券','衣物','電子用品','藥品'];S.dine??=[];if(!RO)(S.wish||[]).forEach(o=>{o.id??=uid()});S.flt??=[];S.pack??=[];S.wish??=[];S.exp??=[];S.people??=['我'];S.fc??='JPY';S.hc??='TWD';S.rate??=''}
+function norm(){S.rates??={};if(!(parseFloat(S.rates.JPY)>0)&&parseFloat(S.rate)>0)S.rates.JPY=parseFloat(S.rate);S.rate='';[S.wish,S.dine,S.exp,S.flt].forEach(L=>(L||[]).forEach(o=>{if(o.img&&!o.imgs){o.imgs=[o.img];delete o.img}}));S.packCats??=['日用品','票券','衣物','電子用品','藥品'];S.notices??=[];S.dine??=[];if(!RO)(S.wish||[]).forEach(o=>{o.id??=uid()});S.flt??=[];S.pack??=[];S.wish??=[];S.exp??=[];S.people??=['我'];S.fc??='JPY';S.hc??='TWD';S.rate??=''}
 const R=()=>parseFloat((S.rates||{})[S.fc])||0;
 const f2=n=>(Math.round(n*100)/100).toLocaleString();
 const home=n=>R()?' ≈ '+f2(n*R())+' '+S.hc:'';
@@ -357,6 +371,24 @@ function wishIdentity(){let id='',name='';try{id=localStorage.getItem('wish-vote
 async function refreshWishVotes(){if(V!=='wish')return;try{const r=await fetch(WISH_API+'?select=item_id,voter_id,voter_name&order=created_at.asc',{headers:{apikey:WISH_KEY,Authorization:'Bearer '+WISH_KEY}});if(!r.ok)throw Error('load');WEB_WISH_VOTES=await r.json();document.querySelectorAll('[data-wvote]').forEach(b=>{const id=b.dataset.wvote,me=wishIdentity(),votes=WEB_WISH_VOTES.filter(v=>v.item_id===id),mine=votes.some(v=>v.voter_id===me.id);b.textContent=mine?'♥ 我想買':'♡ 我也想買';b.setAttribute('aria-pressed',String(mine));const l=[...document.querySelectorAll('[data-wvlabel]')].find(x=>x.dataset.wvlabel===id);if(l)l.textContent=votes.length?'想買 '+votes.length+' 人：'+votes.map(v=>v.voter_id===me.id?'我':v.voter_name).join('、'):'還沒有人標記想買'});}catch(e){document.querySelectorAll('[data-wvlabel]').forEach(l=>l.textContent='登記功能暫時無法連線')}}
 async function toggleWebWishVote(itemId){if(WEB_WISH_BUSY)return;WEB_WISH_BUSY=true;try{const me=wishIdentity();if(!me.name){const n=prompt('輸入你的旅伴名稱，讓大家知道是誰想買：');if(!n||!n.trim()){WEB_WISH_BUSY=false;return}me.name=n.trim().slice(0,40);try{localStorage.setItem('wish-voter-name',me.name)}catch(e){}}const mine=WEB_WISH_VOTES.some(v=>v.item_id===itemId&&v.voter_id===me.id);const headers={apikey:WISH_KEY,Authorization:'Bearer '+WISH_KEY,'Content-Type':'application/json',Prefer:'return=minimal'};let r;if(mine){r=await fetch(WISH_API+'?item_id=eq.'+encodeURIComponent(itemId)+'&voter_id=eq.'+encodeURIComponent(me.id),{method:'DELETE',headers})}else{r=await fetch(WISH_API,{method:'POST',headers,body:JSON.stringify({item_id:itemId,voter_id:me.id,voter_name:me.name})})}if(!r.ok)throw Error('save');await refreshWishVotes()}catch(e){flash('登記失敗，請稍後再試')}finally{WEB_WISH_BUSY=false}}
 if(!window.__wishVotePoll){window.__wishVotePoll=setInterval(()=>{if(V==='wish')refreshWishVotes()},5000)}
+function noticeCard(o,i,cats){
+  const a='data-k="notices" data-i="'+i+'"';
+  const safeLink=u=>/^https?:\\/\\//i.test((u||'').trim())?(u||'').trim():'';
+  const youtubeId=u=>{
+    try{
+      const x=new URL(u);
+      let id='';
+      if(x.hostname==='youtu.be')id=x.pathname.slice(1).split('/')[0];
+      else if(/(^|\\.)youtube(-nocookie)?\\.com$/i.test(x.hostname))id=x.searchParams.get('v')||x.pathname.match(/\\/(?:embed|shorts)\\/([^/?]+)/)?.[1]||'';
+      return /^[A-Za-z0-9_-]{11}$/.test(id)?id:'';
+    }catch(e){return ''}
+  };
+  const links=(o.links||'').split(/\\r?\\n/).map(safeLink).filter(Boolean);
+  const videos=(o.videos||'').split(/\\r?\\n/).map(safeLink).filter(Boolean);
+  const media=links.length?'<div class="notice-links"><b>相關網址</b>'+links.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(u)+'</a>').join('')+'</div>':'';
+  const vids=videos.length?'<div class="notice-videos"><b>影片連結</b>'+videos.map(u=>{const id=youtubeId(u);return id?'<div class="notice-video"><iframe src="https://www.youtube-nocookie.com/embed/'+id+'" title="注意事項影片" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div><a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">在 YouTube 開啟影片</a>':'<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(u)+'</a>'}).join('')+'</div>':'';
+  return '<article class="notice-card"><div class="notice-head"><input '+a+' data-f="title" value="'+esc(o.title||'')+'" placeholder="注意事項標題，例如：日本機車交通規則" aria-label="標題"><select '+a+' data-f="cat" aria-label="分類">'+cats.map(c=>'<option value="'+c+'"'+(c===(o.cat||'其他')?' selected':'')+'>'+c+'</option>').join('')+'</select><button class="btn del" data-x="notices" data-i="'+i+'">刪除</button></div><label class="notice-field">內容<textarea '+a+' data-f="content" rows="3" placeholder="寫下規定、提醒或旅行中可能遇到的問題">'+esc(o.content||'')+'</textarea></label><label class="notice-field">相關網址<textarea '+a+' data-f="links" rows="2" placeholder="每行貼上一個網址">'+esc(o.links||'')+'</textarea></label>'+media+'<label class="notice-field">影片連結<textarea '+a+' data-f="videos" rows="2" placeholder="每行貼上一個 YouTube 或其他影片網址">'+esc(o.videos||'')+'</textarea></label>'+vids+'<label class="notice-field">補充備註<textarea '+a+' data-f="note" rows="2" placeholder="其他補充">'+esc(o.note||'')+'</textarea></label></article>';
+}
 function renderOther(){
   let h='';
   if(V==='pack'){h=packHtml()}else if(V==='wish'){
@@ -373,6 +405,9 @@ function renderOther(){
     h=`<div class="fx"><label>分類<select id="dfil" data-keep="1">${opt([['全部','全部'],...DC.map(c=>[c,c])],DF)}</select></label><label>排序<select id="dsort" data-keep="1">${opt([['add','加入順序'],['cat','分類'],['name','店名'],['open','開門時間'],['close','打烊時間']],DS)}</select></label></div><ul class="items">${L.map(x=>dineRow(x.o,x.i)).join('')||'<li class="empty">還沒有備選餐廳，按下方新增。</li>'}</ul><div class="bar"><button class="btn main" data-add="dine">＋ 新增餐廳</button></div><div class="total" id="sum"></div>`;
   }else if(V==='flt'){
     h=`<div class="fbox" id="sum"></div><ul class="items">${S.flt.map(fltRow).join('')||'<li class="empty">還沒有機票，按下方新增。</li>'}</ul><div class="bar"><button class="btn main" data-add="flt">＋ 新增航班</button></div>`;
+  }else if(V==='notice'){
+    const cats=['交通','入境','住宿','安全','購物','行李','其他'];
+    h=`<div class="notice-intro">把旅途中可能遇到的問題、官方規定和教學整理在這裡。網址與影片連結可一筆貼一行。</div><div class="notice-list">${(S.notices||[]).map((o,i)=>noticeCard(o,i,cats)).join('')||'<div class="empty">目前還沒有注意事項，按下方新增。</div>'}</div><div class="bar"><button class="btn main" data-add="notices">＋ 新增注意事項</button></div>`;
   }else{
     h=`<div class="fx"><label>外幣代碼<select data-fx="fc" aria-label="選擇外幣代碼">${[...new Set([...CUR,...Object.keys(S.rates||{}),S.fc])].map(c=>`<option value="${esc(c)}"${c===S.fc?' selected':''}>${esc(c)}</option>`).join('')}</select></label><label>本國幣代碼<input data-fx="hc" value="${esc(S.hc)}" maxlength="3" aria-label="本國幣代碼"></label></div><div class="calc"><label>${esc(S.fc)} 金額<input type="number" step="any" id="cf" data-keep="1" placeholder="輸入外幣金額"></label><span>⇄</span><label>${esc(S.hc)} 金額<input type="number" step="any" id="ch" data-keep="1" placeholder="換算結果"></label></div><p class="sub">幣別匯率</p><p class="rate-help">在這裡新增或修改各幣別的匯率；上方選擇幣別後會自動帶入對應匯率。</p><div class="rate-list">${Object.keys(S.rates).map(c=>`<div class="rate-row"><span class="rate-code">${esc(c)}</span><input type="number" step="any" data-rt="${esc(c)}" value="${esc(S.rates[c])}" aria-label="1 ${esc(c)} 可兌換多少 ${esc(S.hc)}" placeholder="輸入匯率"><button class="btn del" data-delrt="${esc(c)}" aria-label="刪除 ${esc(c)}">✕</button></div>`).join('')}</div><p class="rate-help">新增幣別時，請填代碼和匯率兩項。</p><div class="rate-add"><input id="newrt" maxlength="3" placeholder="幣別代碼，例如 USD" aria-label="新增幣別代碼"><input id="newrate" type="number" step="any" placeholder="匯率，例如 31.5" aria-label="新增幣別兌換本國幣匯率"></div><button class="btn" data-addrt="1">＋ 新增幣別與匯率</button><div class="rate-query"><p class="sub">此頁無法自動取得即時匯率，請先查詢再填入。</p><a class="btn" target="_blank" rel="noopener" data-fxlink="1">查詢今日匯率</a></div>`;
   }
@@ -737,6 +772,7 @@ oth.addEventListener('input',e=>{
 oth.addEventListener('change',e=>{
   const d=e.target.dataset;
   if((d.k==='pack'||d.k==='wish')&&d.f==='cat'){render();return}
+  if(d.k==='notices'&&d.f==='cat'){render();return}
   if(e.target.id==='wfil'){WF=e.target.value;render();return}
   if(e.target.id==='dfil'){DF=e.target.value;render();return}
   if(e.target.id==='dsort'){DS=e.target.value;render();return}
@@ -774,6 +810,7 @@ oth.onclick=e=>{
     else if(k==='dine')S.dine.push({name:'',cat:'午餐',addr:'',open:'',close:'',off:[],note:''});
     else if(k==='flt')S.flt.push({dir:S.flt.some(o=>o.dir!=='ret')?'ret':'out',no:'',from:'',to:'',dep:'',arr:'',pnr:'',note:''});
     else if(k==='exp')S.exp.push({t:'',amt:'',cur:S.fc,who:0,split:S.people.map((_,j)=>j)});
+    else if(k==='notices')S.notices.push({title:'',cat:'其他',content:'',links:'',videos:'',note:''});
     else S[k].push(k==='pack'?{t:'',done:false,cat:a.dataset.cat||''}:{t:'',price:'',done:false,id:uid(),cat:WF!=='全部'?WF:WC[0],note:'',cur:S.fc});
   }else if(x)S[x.dataset.x].splice(+x.dataset.i,1);
   else return;
@@ -798,7 +835,7 @@ $('pub').onclick=async()=>{
     flash(m[e&&e.code]||('發布失敗（'+((e&&e.code)||'未知原因')+'），請稍後再試'),6000);
   }
 };
-const GROUPS={plan:['title','start','end','dest','days'],flt:['flt'],dine:['dine'],pack:['pack','packCats'],wish:['wish'],exp:['exp','people'],fx:['fc','hc','rate','rates']};
+const GROUPS={plan:['title','start','end','dest','days'],flt:['flt'],dine:['dine'],pack:['pack','packCats'],wish:['wish'],exp:['exp','people'],notice:['notices'],fx:['fc','hc','rate','rates']};
 const canon=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.keys(v).sort().reduce((a,x)=>(a[x]=v[x],a),{}):v);
 const pickG=g=>{const o={};GROUPS[g].forEach(k=>{if(S[k]!==undefined)o[k]=S[k]});return o};
 let SYNC=false,LAST={},FT2=0,IMG={};
@@ -940,6 +977,8 @@ function allText(){
   [...C,''].forEach(c=>{const A=(S.pack||[]).filter(o=>c===''?!C.includes(o.cat):o.cat===c);if(!A.length)return;L.push((c||'未分類')+'：');A.forEach(o=>L.push('  '+(o.done?'[x] ':'[ ] ')+(o.t||'')))});
   L.push('');L.push('【願望清單】');
   (S.wish||[]).forEach(o=>L.push((o.done?'[x] ':'[ ] ')+(o.t||'')+(o.price?'　'+o.price+' '+(o.cur||S.fc):'')+(o.cat?'　'+o.cat:'')+(o.note?'　'+o.note:'')));
+  L.push('');L.push('【注意事項】');
+  (S.notices||[]).forEach(o=>{L.push('・'+(o.title||'未命名')+'（'+(o.cat||'其他')+'）');if(o.content)L.push(o.content);if(o.links)L.push('網址：'+o.links);if(o.videos)L.push('影片：'+o.videos);if(o.note)L.push('補充：'+o.note)});
   L.push('');L.push('【旅費】');
   const c=expCalc();
   L.push('總支出 '+f2(c.tot)+' '+c.unit);
