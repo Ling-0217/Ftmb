@@ -772,7 +772,7 @@ oth.addEventListener('input',e=>{
 oth.addEventListener('change',e=>{
   const d=e.target.dataset;
   if((d.k==='pack'||d.k==='wish')&&d.f==='cat'){render();return}
-  if(d.k==='notices'&&d.f==='cat'){render();return}
+  if(d.k==='notices'&&['cat','links','videos'].includes(d.f)){render();return}
   if(e.target.id==='wfil'){WF=e.target.value;render();return}
   if(e.target.id==='dfil'){DF=e.target.value;render();return}
   if(e.target.id==='dsort'){DS=e.target.value;render();return}
