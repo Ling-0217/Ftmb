@@ -210,7 +210,7 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
   <section id="day" class="day" style=""></section>
   <section id="oth" class="day" style="display: none;"><div class="fx"><label>外幣<input data-fx="fc" value="JPY" maxlength="3"></label><label>本國幣<input data-fx="hc" value="TWD" maxlength="3"></label><label>1 JPY =<input type="number" step="any" data-fx="rate" value="0.21" placeholder="例如 0.21"> TWD</label></div><div class="calc"><label>JPY<input type="number" step="any" id="cf" data-keep="1" placeholder="0"></label><span>⇄</span><label>TWD<input type="number" step="any" id="ch" data-keep="1" placeholder="0"></label></div><p class="sub">其他幣別匯率（1 單位外幣 = 多少 TWD）</p><div class="ppl"><input id="newrt" maxlength="3" placeholder="例如 USD"><button class="btn" data-addrt="1">＋ 幣別</button></div><p class="sub">這個頁面無法自動取得即時匯率，請先查好再填入上方。 <a class="btn" target="_blank" rel="noopener" data-fxlink="1">查詢今日匯率</a></p></section>
   <div class="foot">
-    <div class="cloud-login-box" id="cloudLoginBox"><label for="cloudEmail">電子郵件</label><input id="cloudEmail" type="email" autocomplete="email" inputmode="email" placeholder="輸入已獲授權的電子郵件"><button class="btn main" id="cloudLogin" type="button">寄送登入連結</button></div>
+    <div class="cloud-login-box" id="cloudLoginBox"><label for="cloudEmail">電子郵件</label><input id="cloudEmail" type="email" data-keep="1" autocomplete="email" inputmode="email" placeholder="輸入已獲授權的電子郵件"><button class="btn main" id="cloudLogin" type="button">寄送登入連結</button></div>
     <span id="cloudStatus" aria-live="polite">尚未登入：修改前請先登入，才能保存到雲端。</span>
     <section id="shareManager" class="share-manager" hidden>
       <b>同行分享管理</b><p class="sub">建立不同權限的分享連結。連結請只傳給同行的人。</p>
