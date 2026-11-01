@@ -196,7 +196,7 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
 .notice-link-buttons{display:flex;flex-wrap:wrap;gap:7px}
 .notice-link-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:7px 12px;border:1px solid var(--acc);border-radius:9px;background:color-mix(in srgb,var(--acc) 16%,var(--card));color:var(--ink);font-size:14px;font-weight:700;text-decoration:none;overflow-wrap:anywhere}
 @media(max-width:420px){.notice-editor{padding:10px}.notice-saved-head{gap:5px}.notice-actions .btn{padding:4px 7px;font-size:12px}.notice-filter{grid-template-columns:minmax(0,1fr) 108px;gap:6px}.notice-links-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.notice-link-btn{width:100%;padding:7px 5px;font-size:12px}}
-</style>
+.dine-editor,.dine-list-section{border:2px solid var(--dc);border-radius:14px;padding:14px;background:var(--card);margin:0 0 16px}.dine-section-title{font-weight:800;font-size:18px;margin:0 0 12px}.dine-count{float:right;font-size:13px;font-weight:500;color:var(--sub)}.dine-draft-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.dine-field{display:flex;flex-direction:column;gap:5px;min-width:0;font-size:14px;color:var(--sub)}.dine-field input,.dine-field select,.dine-field textarea{width:100%;min-width:0;border:1px solid var(--line);border-radius:9px;padding:10px 11px;background:var(--ft);color:var(--ink);font:inherit}.dine-field textarea{resize:vertical;min-height:76px}.dine-wide{grid-column:1/-1}.dine-address,.dine-hours{display:flex;align-items:center;gap:8px;min-width:0}.dine-address input,.dine-hours input{flex:1;min-width:0}.dine-off{display:flex;flex-wrap:wrap;gap:7px}.dine-editor-actions{display:flex;gap:8px;margin-top:14px}.dine-draft-photos{display:flex;flex-wrap:wrap;gap:8px}.dine-draft-photo{position:relative;width:76px;height:76px}.dine-draft-photo img{width:100%;height:100%;object-fit:cover;border-radius:9px}.dine-draft-photo button{position:absolute;right:-5px;top:-7px;padding:0 7px;background:var(--card)}.dine-draft-add{display:flex;align-items:center;justify-content:center;min-width:76px;min-height:76px;padding:8px;border:1px dashed var(--line);border-radius:9px;background:var(--ft);cursor:pointer;color:var(--sub)}.dine-list{display:grid;gap:10px}.dine-card{list-style:none;border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--ft)}.dine-card-main{display:flex;gap:12px;align-items:flex-start}.dine-card-photo,.dine-card-placeholder{width:88px;height:88px;flex:none;border-radius:9px;object-fit:cover}.dine-card-placeholder{display:flex;align-items:center;justify-content:center;background:var(--card);border:1px dashed var(--line);font-size:22px}.dine-card-info{flex:1;min-width:0}.dine-card-heading{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.dine-card-heading strong{font-size:16px;overflow-wrap:anywhere}.dine-category{font-size:12px;border-radius:99px;padding:2px 8px;background:color-mix(in srgb,var(--dc) 28%,white)}.dine-card-address,.dine-card-summary{font-size:13px;color:var(--sub);margin-top:4px;overflow-wrap:anywhere}.dine-card-details{margin-top:10px;border-top:1px solid var(--line);padding-top:8px;font-size:13px}.dine-card-details summary{cursor:pointer;color:var(--sub)}.dine-detail-line{margin-top:7px;overflow-wrap:anywhere}.dine-detail-note{white-space:pre-wrap}.dine-detail-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.dine-edit-shortcut{margin-top:9px;font-size:13px}@media(max-width:420px){.dine-editor,.dine-list-section{padding:11px}.dine-draft-grid{gap:10px}.dine-card-photo,.dine-card-placeholder{width:76px;height:76px}}</style>
 </head>
 <body>
 <main class="">
@@ -497,12 +497,14 @@ function renderOther(){
     h=`<div class="wish-summary" id="wish-summary"><div class="ws-title">預估總額（全部願望）</div><div class="ws-currencies" id="wish-currencies"></div><div class="ws-title ws-second">還沒買的</div><div class="ws-currencies" id="wish-unbought"></div></div><div class="collection-filter"><input id="wish-search" type="search" placeholder="搜尋願望名稱、分類或備註…" aria-label="搜尋願望"><label>分類<select id="wfil" data-keep="1">${['全部',...WC].map(c=>`<option${c===WF?' selected':''}>${c}</option>`).join('')}</select></label></div><ul class="items">${L.map(x=>wishRow(x.o,x.i)).join('')||'<li class="empty">還沒有項目，按下方新增。</li>'}</ul><div class="bar"><button class="btn main" data-add="wish">＋ 新增想買的東西</button></div><div class="total" id="sum"></div>`;
   }else if(V==='exp'){
     h=`<div class="expense-summary"><div class="total" id="sum"></div><div id="ptot" class="ptot"></div></div><p class="sub">旅伴（可改名、可刪除）</p><div class="ppl">${S.people.map((p,i)=>`<span class="pp"><input data-pp="${i}" value="${esc(p)}" aria-label="旅伴"><button class="btn del" data-delp="${i}" aria-label="刪除旅伴"${S.people.length<2?' disabled':''}>✕</button></span>`).join('')}<button class="btn" data-add="ppl">＋ 旅伴</button></div><p class="sub">支出</p><ul class="items">${S.exp.map(expRow).join('')}</ul><div class="bar"><button class="btn main" data-add="exp">＋ 新增支出</button></div>`;
+
   }else if(V==='dine'){
     const L=S.dine.map((o,i)=>({o,i})).filter(x=>DF==='全部'||x.o.cat===DF);
     const K={cat:x=>DC.indexOf(x.o.cat),name:x=>x.o.name||'',open:x=>x.o.open||'99:99',close:x=>x.o.close||'99:99'}[DS];
     if(K)L.sort((x,y)=>{const a=K(x),b=K(y);return a<b?-1:a>b?1:0});
-    const opt=(arr,cur)=>arr.map(([v,t])=>`<option value="${v}"${v===cur?' selected':''}>${t}</option>`).join('');
-    h=`<div class="collection-filter dine-filter"><input id="dine-search" type="search" placeholder="搜尋餐廳名稱、地址或備註…" aria-label="搜尋餐廳"><label>分類<select id="dfil" data-keep="1">${opt([['全部','全部'],...DC.map(c=>[c,c])],DF)}</select></label><label>排序<select id="dsort" data-keep="1">${opt([['add','加入順序'],['cat','分類'],['name','店名'],['open','開門時間'],['close','打烊時間']],DS)}</select></label></div><ul class="items">${L.map(x=>dineRow(x.o,x.i)).join('')||'<li class="empty">還沒有備選餐廳，按下方新增。</li>'}</ul><div class="bar"><button class="btn main" data-add="dine">＋ 新增餐廳</button></div><div class="total" id="sum"></div>`;
+    const opt=(arr,cur)=>arr.map(([v,t])=>'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+t+'</option>').join('');
+    h='<section class="dine-editor"><div class="dine-section-title">'+(DINE_EDIT>=0?'編輯餐廳':'新增餐廳')+'</div>'+dineEditorHtml()+'<div class="dine-editor-actions"><button class="btn main" data-dine-save>'+(DINE_EDIT>=0?'確定儲存':'確定新增')+'</button>'+(DINE_EDIT>=0?'<button class="btn" data-dine-cancel>取消編輯</button>':'')+'</div></section>'+
+      '<section class="dine-list-section"><div class="dine-section-title">已新增的餐廳 <span class="dine-count">共 '+S.dine.length+' 家</span></div><div class="collection-filter dine-filter"><input id="dine-search" type="search" placeholder="搜尋餐廳名稱、地址或備註…" aria-label="搜尋餐廳"><label>分類<select id="dfil" data-keep="1">'+opt([['全部','全部'],...DC.map(c=>[c,c])],DF)+'</select></label><label>排序<select id="dsort" data-keep="1">'+opt([['add','加入順序'],['cat','分類'],['name','店名'],['open','開門時間'],['close','打烊時間']],DS)+'</select></label></div><ul class="items dine-list">'+(L.map(x=>dineCard(x.o,x.i)).join('')||'<li class="empty">還沒有備選餐廳，請使用上方表單新增。</li>')+'</ul><div class="empty" data-collection-no-results hidden>找不到符合條件的餐廳。</div></section><div class="total" id="sum"></div>';
   }else if(V==='flt'){
     h=`<div class="fbox" id="sum"></div><ul class="items">${S.flt.map(fltRow).join('')||'<li class="empty">還沒有機票，按下方新增。</li>'}</ul><div class="bar"><button class="btn main" data-add="flt">＋ 新增航班</button></div>`;
   }else if(V==='notice'){
@@ -576,12 +578,20 @@ function renderMap(){
 }
 $('mapbar').onclick=e=>{const a=e.target.closest('[data-r]');if(!a)return;const u=routes()[+a.dataset.r];if(u)a.href=u;else e.preventDefault()};
 const DC=['早餐','午餐','晚餐','咖啡甜點','居酒屋','小吃','其他'];
-let DF='全部',DS='add',DB=null,UID=null,VOTES={},NAMES={},vbusy=false;
-function dineRow(o,i){
-  const a=`data-k="dine" data-i="${i}"`;
-  const sel=`<select ${a} data-f="cat" aria-label="分類">${DC.map(c=>`<option${o.cat===c?' selected':''}>${c}</option>`).join('')}</select>`;
-  const off=['日','一','二','三','四','五','六'].map((w,j)=>`<label class="chk"><input type="checkbox" ${a} data-f="off" data-n="${j}"${(o.off||[]).includes(j)?' checked':''}>${w}</label>`).join('');
-  return `<li class="item ex fl">${sel}<input ${a} data-f="name" value="${esc(o.name)}" placeholder="店名"><div class="full">營業 <input type="time" ${a} data-f="open" value="${esc(o.open)}"> 到 <input type="time" ${a} data-f="close" value="${esc(o.close)}"></div><div class="full">公休日 ${off}</div><div class="full"><span class="warn" data-warn="${i}"></span></div><div class="full">備註 <input ${a} data-f="note" value="${esc(o.note)}" placeholder="必點、要預約、地址…"></div><div class="full"><a class="btn" target="_blank" rel="noopener" data-dmap="${i}">地圖</a></div><button class="btn del" data-x="dine" data-i="${i}">刪除</button></li>`;
+let DF='全部',DS='add',DB=null,UID=null,VOTES={},NAMES={},vbusy=false,DINE_EDIT=-1,DINE_DRAFT=null;
+
+function dineEditorHtml(){
+  const o=DINE_DRAFT||{name:'',cat:'午餐',addr:'',open:'',close:'',off:[],note:'',imgs:[]};
+  const off=['日','一','二','三','四','五','六'].map((w,j)=>'<label class="dchip"><input type="checkbox" data-draft="1" data-f="off" data-n="'+j+'"'+((o.off||[]).includes(j)?' checked':'')+'>'+w+'</label>').join('');
+  const photos=(o.imgs||[]).map((u,j)=>'<div class="dine-draft-photo"><img src="'+esc(imgSrc(u))+'" alt=""><button type="button" class="btn del" data-draft-img-del="'+j+'">×</button></div>').join('');
+  return '<div class="dine-draft-grid"><label class="dine-field dine-wide">店名<input data-draft="1" data-f="name" value="'+esc(o.name||'')+'" placeholder="輸入餐廳名稱"></label><label class="dine-field">分類<select data-draft="1" data-f="cat">'+DC.map(c=>'<option'+(o.cat===c?' selected':'')+'>'+c+'</option>').join('')+'</select></label><label class="dine-field dine-wide">地址<div class="dine-address"><input data-draft="1" data-f="addr" value="'+esc(o.addr||'')+'" placeholder="輸入地址"><a class="btn" target="_blank" rel="noopener" data-draft-map>地圖</a></div></label><div class="dine-field"><span>營業時間</span><div class="dine-hours"><input type="time" data-draft="1" data-f="open" value="'+esc(o.open||'')+'"><span>到</span><input type="time" data-draft="1" data-f="close" value="'+esc(o.close||'')+'"></div></div><div class="dine-field dine-wide"><span>公休日</span><div class="dine-off">'+off+'</div></div><label class="dine-field dine-wide">備註<textarea data-draft="1" data-f="note" rows="3" placeholder="必點餐點、預約方式或其他備註">'+esc(o.note||'')+'</textarea></label><div class="dine-field dine-wide"><span>餐廳照片</span><div class="dine-draft-photos">'+photos+'<label class="dine-draft-add">＋ 上傳照片<input type="file" accept="image/*" multiple data-img="dineDraft" hidden></label></div></div></div>';
+}
+function dineCard(o,i){
+  const photo=(o.imgs||[]).length?'<img class="dine-card-photo" src="'+esc(imgSrc(o.imgs[0]))+'" alt="">':'<div class="dine-card-placeholder">📷</div>';
+  const hours=o.open||o.close?esc(o.open||'未填')+'～'+esc(o.close||'未填'):'未填營業時間';
+  const off=(o.off||[]).length?'公休：'+(o.off||[]).map(n=>['日','一','二','三','四','五','六'][n]).join('、'):'未設定公休日';
+  const warn=dineWarn(o);
+  return '<li class="dine-card" data-i="'+i+'"><div class="dine-card-main">'+photo+'<div class="dine-card-info"><div class="dine-card-heading"><strong>'+esc(o.name||'未命名餐廳')+'</strong><span class="dine-category">'+esc(o.cat||'其他')+'</span></div><div class="dine-card-address">'+esc(o.addr||'尚未填寫地址')+'</div><div class="dine-card-summary">'+hours+'</div>'+(warn?'<div class="warn">'+esc(warn)+'</div>':'')+'</div></div><details class="dine-card-details"><summary>查看詳細資料</summary><div class="dine-detail-line">'+off+'</div><div class="dine-detail-line dine-detail-note">'+esc(o.note||'尚無備註')+'</div><div class="dine-detail-actions"><a class="btn" target="_blank" rel="noopener" data-dmap="'+i+'">在地圖查看</a><button class="btn" data-dine-edit="'+i+'">編輯</button><button class="btn del" data-x="dine" data-i="'+i+'">刪除</button></div></details><button class="btn dine-edit-shortcut" data-dine-edit="'+i+'">編輯餐廳</button></li>';
 }
 function dineWarn(o){
   const off=o.off||[];if(!off.length||!S.start)return '';
@@ -652,11 +662,19 @@ function wishRow(o,i){
   const v=o.id&&DB&&UID?`<div class="vrow"><button class="btn" data-vote="${o.id}">♡ 我也想買</button><span class="vl" data-vl="${o.id}"></span></div>`:'';
   return `<li class="row wr"><input type="checkbox" ${a} data-f="done"${o.done?' checked':''} aria-label="已買">${thumb('wish',i,o,' lg')}<div class="wb"><div class="wl"><input ${a} data-f="t" value="${esc(o.t)}" placeholder="想買什麼？"><input type="number" class="amt" ${a} data-f="price" value="${esc(o.price)}" placeholder="${esc(S.fc)}" aria-label="預估價格"></div><div class="wl">${sel}</div><textarea ${a} data-f="note" placeholder="說明（尺寸、顏色、哪裡買…）">${esc(o.note)}</textarea></div><button class="btn del" data-x="wish" data-i="${i}">刪除</button>${v}</li>`;
 }
-function dineRow(o,i){
-  const a=`data-k="dine" data-i="${i}"`;
-  const sel=`<select ${a} data-f="cat" aria-label="分類">${DC.map(c=>`<option${o.cat===c?' selected':''}>${c}</option>`).join('')}</select>`;
-  const off=['日','一','二','三','四','五','六'].map((w,j)=>`<label class="dchip"><input type="checkbox" ${a} data-f="off" data-n="${j}"${(o.off||[]).includes(j)?' checked':''}>${w}</label>`).join('');
-  return `<li class="item ex fl"><div class="full dine-images">${thumb('dine',i,o,' big')}</div>${sel}<input ${a} data-f="name" value="${esc(o.name)}" placeholder="店名"><div class="full nw"><span>地址</span><input ${a} data-f="addr" value="${esc(o.addr)}" placeholder="地址"><a class="btn" target="_blank" rel="noopener" data-dmap="${i}">地圖</a></div><div class="full nw"><span>營業</span><input type="time" ${a} data-f="open" value="${esc(o.open)}"><span>到</span><input type="time" ${a} data-f="close" value="${esc(o.close)}"></div><div class="full nw"><span>公休</span>${off}</div><div class="full"><span class="warn" data-warn="${i}"></span><span class="sub" data-dist="${i}"></span></div><div class="full dine-note">備註 <textarea ${a} data-f="note" rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'" placeholder="必點、要預約…">${esc(o.note)}</textarea></div><button class="btn del" data-x="dine" data-i="${i}">刪除</button></li>`;
+
+function dineEditorHtml(){
+  const o=DINE_DRAFT||{name:'',cat:'午餐',addr:'',open:'',close:'',off:[],note:'',imgs:[]};
+  const off=['日','一','二','三','四','五','六'].map((w,j)=>'<label class="dchip"><input type="checkbox" data-draft="1" data-f="off" data-n="'+j+'"'+((o.off||[]).includes(j)?' checked':'')+'>'+w+'</label>').join('');
+  const photos=(o.imgs||[]).map((u,j)=>'<div class="dine-draft-photo"><img src="'+esc(imgSrc(u))+'" alt=""><button type="button" class="btn del" data-draft-img-del="'+j+'">×</button></div>').join('');
+  return '<div class="dine-draft-grid"><label class="dine-field dine-wide">店名<input data-draft="1" data-f="name" value="'+esc(o.name||'')+'" placeholder="輸入餐廳名稱"></label><label class="dine-field">分類<select data-draft="1" data-f="cat">'+DC.map(c=>'<option'+(o.cat===c?' selected':'')+'>'+c+'</option>').join('')+'</select></label><label class="dine-field dine-wide">地址<div class="dine-address"><input data-draft="1" data-f="addr" value="'+esc(o.addr||'')+'" placeholder="輸入地址"><a class="btn" target="_blank" rel="noopener" data-draft-map>地圖</a></div></label><div class="dine-field"><span>營業時間</span><div class="dine-hours"><input type="time" data-draft="1" data-f="open" value="'+esc(o.open||'')+'"><span>到</span><input type="time" data-draft="1" data-f="close" value="'+esc(o.close||'')+'"></div></div><div class="dine-field dine-wide"><span>公休日</span><div class="dine-off">'+off+'</div></div><label class="dine-field dine-wide">備註<textarea data-draft="1" data-f="note" rows="3" placeholder="必點餐點、預約方式或其他備註">'+esc(o.note||'')+'</textarea></label><div class="dine-field dine-wide"><span>餐廳照片</span><div class="dine-draft-photos">'+photos+'<label class="dine-draft-add">＋ 上傳照片<input type="file" accept="image/*" multiple data-img="dineDraft" hidden></label></div></div></div>';
+}
+function dineCard(o,i){
+  const photo=(o.imgs||[]).length?'<img class="dine-card-photo" src="'+esc(imgSrc(o.imgs[0]))+'" alt="">':'<div class="dine-card-placeholder">📷</div>';
+  const hours=o.open||o.close?esc(o.open||'未填')+'～'+esc(o.close||'未填'):'未填營業時間';
+  const off=(o.off||[]).length?'公休：'+(o.off||[]).map(n=>['日','一','二','三','四','五','六'][n]).join('、'):'未設定公休日';
+  const warn=dineWarn(o);
+  return '<li class="dine-card" data-i="'+i+'"><div class="dine-card-main">'+photo+'<div class="dine-card-info"><div class="dine-card-heading"><strong>'+esc(o.name||'未命名餐廳')+'</strong><span class="dine-category">'+esc(o.cat||'其他')+'</span></div><div class="dine-card-address">'+esc(o.addr||'尚未填寫地址')+'</div><div class="dine-card-summary">'+hours+'</div>'+(warn?'<div class="warn">'+esc(warn)+'</div>':'')+'</div></div><details class="dine-card-details"><summary>查看詳細資料</summary><div class="dine-detail-line">'+off+'</div><div class="dine-detail-line dine-detail-note">'+esc(o.note||'尚無備註')+'</div><div class="dine-detail-actions"><a class="btn" target="_blank" rel="noopener" data-dmap="'+i+'">在地圖查看</a><button class="btn" data-dine-edit="'+i+'">編輯</button><button class="btn del" data-x="dine" data-i="'+i+'">刪除</button></div></details><button class="btn dine-edit-shortcut" data-dine-edit="'+i+'">編輯餐廳</button></li>';
 }
 function distOf(o,i){
   const c=o.lat!=null?{lat:o.lat,lng:o.lng}:COORD[i];if(!ME||!c)return null;
@@ -751,6 +769,7 @@ function readImg(file,max){return new Promise(res=>{
     im.onerror=()=>res(null);im.src=r.result};
   r.onerror=()=>res(null);r.readAsDataURL(file);
 })}
+async function addDineDraftImgs(files){if(!DINE_DRAFT)return;DINE_DRAFT.imgs=DINE_DRAFT.imgs||[];flash('處理圖片中…');for(const file of Array.from(files||[])){const u=await readImg(file,700);if(u)DINE_DRAFT.imgs.push(u);else flash('有一張圖片無法讀取')}render()}
 async function addImgs(k,i,files){
   const o=S[k][i],mx={flt:900,dine:700}[k]||480;o.imgs=o.imgs||[];
   flash('處理圖片中…');
@@ -775,11 +794,19 @@ function packRow(o,i){
   const a=`data-k="pack" data-i="${i}"`;
   return `<li class="row"><input type="checkbox" ${a} data-f="done"${o.done?' checked':''} aria-label="完成"><input ${a} data-f="t" value="${esc(o.t)}" placeholder="要帶什麼？"><button class="btn del sm" data-x="pack" data-i="${i}">刪除</button></li>`;
 }
-function dineRow(o,i){
-  const a=`data-k="dine" data-i="${i}"`;
-  const sel=`<select ${a} data-f="cat" aria-label="分類">${DC.map(c=>`<option${o.cat===c?' selected':''}>${c}</option>`).join('')}</select>`;
-  const off=['日','一','二','三','四','五','六'].map((w,j)=>`<label class="dchip"><input type="checkbox" ${a} data-f="off" data-n="${j}"${(o.off||[]).includes(j)?' checked':''}>${w}</label>`).join('');
-  return `<li class="item ex fl">${gal('dine',i,o,'l').replace('class="gal"','class="gal dine-gal"')}${sel}<input ${a} data-f="name" value="${esc(o.name)}" placeholder="店名"><div class="full nw"><span>地址</span><input ${a} data-f="addr" value="${esc(o.addr)}" placeholder="地址"><a class="btn" target="_blank" rel="noopener" data-dmap="${i}">地圖</a></div><div class="full nw"><span>營業</span><input type="time" ${a} data-f="open" value="${esc(o.open)}"><span>到</span><input type="time" ${a} data-f="close" value="${esc(o.close)}"></div><div class="full nw"><span>公休</span>${off}</div><div class="full"><span class="warn" data-warn="${i}"></span></div><div class="full dine-note"><label for="dine-note-${i}">備註</label><textarea id="dine-note-${i}" ${a} data-f="note" rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'" placeholder="必點、要預約…">${esc(o.note)}</textarea></div><button class="btn del sm" data-x="dine" data-i="${i}">刪除</button></li>`;
+
+function dineEditorHtml(){
+  const o=DINE_DRAFT||{name:'',cat:'午餐',addr:'',open:'',close:'',off:[],note:'',imgs:[]};
+  const off=['日','一','二','三','四','五','六'].map((w,j)=>'<label class="dchip"><input type="checkbox" data-draft="1" data-f="off" data-n="'+j+'"'+((o.off||[]).includes(j)?' checked':'')+'>'+w+'</label>').join('');
+  const photos=(o.imgs||[]).map((u,j)=>'<div class="dine-draft-photo"><img src="'+esc(imgSrc(u))+'" alt=""><button type="button" class="btn del" data-draft-img-del="'+j+'">×</button></div>').join('');
+  return '<div class="dine-draft-grid"><label class="dine-field dine-wide">店名<input data-draft="1" data-f="name" value="'+esc(o.name||'')+'" placeholder="輸入餐廳名稱"></label><label class="dine-field">分類<select data-draft="1" data-f="cat">'+DC.map(c=>'<option'+(o.cat===c?' selected':'')+'>'+c+'</option>').join('')+'</select></label><label class="dine-field dine-wide">地址<div class="dine-address"><input data-draft="1" data-f="addr" value="'+esc(o.addr||'')+'" placeholder="輸入地址"><a class="btn" target="_blank" rel="noopener" data-draft-map>地圖</a></div></label><div class="dine-field"><span>營業時間</span><div class="dine-hours"><input type="time" data-draft="1" data-f="open" value="'+esc(o.open||'')+'"><span>到</span><input type="time" data-draft="1" data-f="close" value="'+esc(o.close||'')+'"></div></div><div class="dine-field dine-wide"><span>公休日</span><div class="dine-off">'+off+'</div></div><label class="dine-field dine-wide">備註<textarea data-draft="1" data-f="note" rows="3" placeholder="必點餐點、預約方式或其他備註">'+esc(o.note||'')+'</textarea></label><div class="dine-field dine-wide"><span>餐廳照片</span><div class="dine-draft-photos">'+photos+'<label class="dine-draft-add">＋ 上傳照片<input type="file" accept="image/*" multiple data-img="dineDraft" hidden></label></div></div></div>';
+}
+function dineCard(o,i){
+  const photo=(o.imgs||[]).length?'<img class="dine-card-photo" src="'+esc(imgSrc(o.imgs[0]))+'" alt="">':'<div class="dine-card-placeholder">📷</div>';
+  const hours=o.open||o.close?esc(o.open||'未填')+'～'+esc(o.close||'未填'):'未填營業時間';
+  const off=(o.off||[]).length?'公休：'+(o.off||[]).map(n=>['日','一','二','三','四','五','六'][n]).join('、'):'未設定公休日';
+  const warn=dineWarn(o);
+  return '<li class="dine-card" data-i="'+i+'"><div class="dine-card-main">'+photo+'<div class="dine-card-info"><div class="dine-card-heading"><strong>'+esc(o.name||'未命名餐廳')+'</strong><span class="dine-category">'+esc(o.cat||'其他')+'</span></div><div class="dine-card-address">'+esc(o.addr||'尚未填寫地址')+'</div><div class="dine-card-summary">'+hours+'</div>'+(warn?'<div class="warn">'+esc(warn)+'</div>':'')+'</div></div><details class="dine-card-details"><summary>查看詳細資料</summary><div class="dine-detail-line">'+off+'</div><div class="dine-detail-line dine-detail-note">'+esc(o.note||'尚無備註')+'</div><div class="dine-detail-actions"><a class="btn" target="_blank" rel="noopener" data-dmap="'+i+'">在地圖查看</a><button class="btn" data-dine-edit="'+i+'">編輯</button><button class="btn del" data-x="dine" data-i="'+i+'">刪除</button></div></details><button class="btn dine-edit-shortcut" data-dine-edit="'+i+'">編輯餐廳</button></li>';
 }
 function fltRow(o,i){
   const a=`data-k="flt" data-i="${i}"`;
@@ -858,6 +885,7 @@ oth.addEventListener('input',e=>{
   if(t.id==='notice-search'){applyNoticeFilters();return}
   if(t.id==='wish-search'){applyCollectionSearch('wish');return}
   if(t.id==='dine-search'){applyCollectionSearch('dine');return}
+  if(t.dataset.draft==='1'){const f=t.dataset.f;if(f==='off'){const n=+t.dataset.n,off=new Set(DINE_DRAFT.off||[]);t.checked?off.add(n):off.delete(n);DINE_DRAFT.off=[...off]}else DINE_DRAFT[f]=t.value;return}
   if(t.id==='cf'){$('ch').value=R()?(+t.value*R()).toFixed(2):'';return}
   if(t.id==='ch'){$('cf').value=R()?(+t.value/R()).toFixed(2):'';return}
   if(d.fx&&d.fx!=='fc'){S[d.fx]=d.fx==='rate'?t.value:t.value.toUpperCase();if(d.fx==='rate')S.rates[S.fc]=t.value;save();return}
@@ -880,6 +908,8 @@ oth.addEventListener('change',e=>{
   if(e.target.id==='wfil'){WF=e.target.value;render();return}
   if(e.target.id==='dfil'){DF=e.target.value;render();return}
   if(e.target.id==='dsort'){DS=e.target.value;render();return}
+  if(d.img==='dineDraft'){addDineDraftImgs(e.target.files);return}
+  if(d.draft==='1'&&d.f==='cat'){DINE_DRAFT.cat=e.target.value;return}
   if(d.img!==undefined){addImgs(d.img,+d.i,e.target.files);return}
   if(d.fx==='fc'){const next=e.target.value;if(S.fc!==next){S.fc=next;S.rate=(parseFloat((S.rates||{})[next])>0)?S.rates[next]:(next==='JPY'?'0.21':'');save();render()}return}
   if(d.fx==='hc'){S.hc=e.target.value.toUpperCase();save();render();return}
@@ -887,6 +917,12 @@ oth.addEventListener('change',e=>{
   if(d.pp!==undefined)render();
 });
 oth.onclick=e=>{
+  const dineSave=e.target.closest('[data-dine-save]');
+  if(dineSave){const o=DINE_DRAFT||{};if(!(o.name||'').trim()){flash('請先輸入餐廳名稱');oth.querySelector('[data-draft][data-f="name"]')?.focus();return}const item={name:(o.name||'').trim(),cat:o.cat||'午餐',addr:(o.addr||'').trim(),open:o.open||'',close:o.close||'',off:o.off||[],note:o.note||'',imgs:o.imgs||[]};if(DINE_EDIT>=0){const old=S.dine[DINE_EDIT]||{};S.dine[DINE_EDIT]=Object.assign({},old,item);if(old.addr!==item.addr||old.name!==item.name){delete S.dine[DINE_EDIT].lat;delete S.dine[DINE_EDIT].lng}}else S.dine.push(item);DINE_EDIT=-1;DINE_DRAFT=null;save();render();flash('餐廳資料已儲存');return}
+  const dineEdit=e.target.closest('[data-dine-edit]');if(dineEdit){DINE_EDIT=+dineEdit.dataset.dineEdit;DINE_DRAFT=JSON.parse(JSON.stringify(S.dine[DINE_EDIT]||{}));render();oth.querySelector('.dine-editor')?.scrollIntoView({behavior:'smooth',block:'start'});return}
+  if(e.target.closest('[data-dine-cancel]')){DINE_EDIT=-1;DINE_DRAFT=null;render();return}
+  const draftDel=e.target.closest('[data-draft-img-del]');if(draftDel){DINE_DRAFT.imgs.splice(+draftDel.dataset.draftImgDel,1);render();return}
+  const draftMap=e.target.closest('[data-draft-map]');if(draftMap){const addr=(DINE_DRAFT?.addr||'').trim();if(addr)draftMap.href='https://www.google.com/maps/search/?api=1&query='+q(addr);else{e.preventDefault();flash('請先填寫地址')}return}
   const ns=e.target.closest('[data-notice-save]');
   if(ns){
     const title=$('notice-title').value.trim(),cat=$('notice-cat').value,content=$('notice-content').value.trim(),links=$('notice-links').value.trim(),videos=$('notice-videos').value.trim(),note=$('notice-note').value.trim(),idx=$('notice-edit-index').value;
