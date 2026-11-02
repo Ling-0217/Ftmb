@@ -943,49 +943,49 @@ function flightDate(v){
   return m?{date:m[1]+'/'+m[2]+'/'+m[3],time:m[4]+':'+m[5]}:{date:'尚未設定',time:'--:--'};
 }
 function fltRow(o,i){
-  const a=\`data-k="flt" data-i="\${i}"\`;
+  const a=`data-k="flt" data-i="${i}"`;
   const dep=flightDate(o.dep),arr=flightDate(o.arr);
   const dir=o.dir==='ret'?'回程':'去程';
-  return \`<li class="flight-card" data-i="\${i}">
+  return `<li class="flight-card" data-i="${i}">
     <div class="flight-view-head">
-      <span class="flight-direction-pill">\${dir}</span>
-      <span class="flight-view-number">\${esc(o.no||'尚未填寫航班編號')}</span>
+      <span class="flight-direction-pill">${dir}</span>
+      <span class="flight-view-number">${esc(o.no||'尚未填寫航班編號')}</span>
     </div>
     <div class="flight-route-view">
       <div class="flight-point">
-        <strong>\${esc(flightCode(o.from))}</strong>
-        <span>\${esc(flightAirportName(o.from))}</span>
+        <strong>${esc(flightCode(o.from))}</strong>
+        <span>${esc(flightAirportName(o.from))}</span>
       </div>
       <div class="flight-plane-view" aria-hidden="true"><span>✈</span><i></i></div>
       <div class="flight-point flight-point-arrival">
-        <strong>\${esc(flightCode(o.to))}</strong>
-        <span>\${esc(flightAirportName(o.to))}</span>
+        <strong>${esc(flightCode(o.to))}</strong>
+        <span>${esc(flightAirportName(o.to))}</span>
       </div>
     </div>
     <div class="flight-time-view">
-      <div class="flight-time-point"><span>起飛・台灣時間</span><strong>\${dep.time}</strong><small>\${dep.date}</small></div>
-      <div class="flight-time-point"><span>抵達・日本時間</span><strong>\${arr.time}</strong><small>\${arr.date}</small></div>
+      <div class="flight-time-point"><span>起飛・台灣時間</span><strong>${dep.time}</strong><small>${dep.date}</small></div>
+      <div class="flight-time-point"><span>抵達・日本時間</span><strong>${arr.time}</strong><small>${arr.date}</small></div>
     </div>
-    <div class="flight-booking-view">\${o.pnr?'<span>訂位代號</span><strong>'+esc(o.pnr)+'</strong>':'<span class="flight-muted">尚未填寫訂位代號</span>'}</div>
-    \${o.note?'<div class="flight-note-view">'+esc(o.note).replace(/\\n/g,'<br>')+'</div>':''}
-    <div class="flight-photos"><span>機票／訂位照片</span>\${gal('flt',i,o,'l')}</div>
+    <div class="flight-booking-view">${o.pnr?'<span>訂位代號</span><strong>'+esc(o.pnr)+'</strong>':'<span class="flight-muted">尚未填寫訂位代號</span>'}</div>
+    ${o.note?'<div class="flight-note-view">'+esc(o.note).replace(/\\n/g,'<br>')+'</div>':''}
+    <div class="flight-photos"><span>機票／訂位照片</span>${gal('flt',i,o,'l')}</div>
     <details class="flight-edit">
       <summary><span>編輯航班資料</span></summary>
       <div class="flight-edit-form">
         <div class="flight-edit-grid">
-          <label><span>航段</span><select \${a} data-f="dir" aria-label="去程或回程"><option value="out"\${o.dir!=='ret'?' selected':''}>去程</option><option value="ret"\${o.dir==='ret'?' selected':''}>回程</option></select></label>
-          <label><span>航班編號</span><input \${a} data-f="no" value="\${esc(o.no)}" placeholder="例如 BR198"></label>
-          <label><span>出發機場（名稱及代碼）</span><input \${a} data-f="from" value="\${esc(o.from)}" placeholder="臺中國際機場 RMQ"></label>
-          <label><span>抵達機場（名稱及代碼）</span><input \${a} data-f="to" value="\${esc(o.to)}" placeholder="那霸機場 OKA"></label>
-          <label class="flight-edit-wide"><span>起飛時間・台灣時間</span><input type="datetime-local" \${a} data-f="dep" value="\${esc(o.dep)}"></label>
-          <label class="flight-edit-wide"><span>抵達時間・日本時間</span><input type="datetime-local" \${a} data-f="arr" value="\${esc(o.arr)}"></label>
-          <label class="flight-edit-wide"><span>訂位代號</span><input \${a} data-f="pnr" value="\${esc(o.pnr)}" placeholder="輸入訂位代號"></label>
-          <label class="flight-edit-wide"><span>備註</span><textarea \${a} data-f="note" rows="2" placeholder="航廈、行李額度…">\${esc(o.note)}</textarea></label>
+          <label><span>航段</span><select ${a} data-f="dir" aria-label="去程或回程"><option value="out"${o.dir!=='ret'?' selected':''}>去程</option><option value="ret"${o.dir==='ret'?' selected':''}>回程</option></select></label>
+          <label><span>航班編號</span><input ${a} data-f="no" value="${esc(o.no)}" placeholder="例如 BR198"></label>
+          <label><span>出發機場（名稱及代碼）</span><input ${a} data-f="from" value="${esc(o.from)}" placeholder="臺中國際機場 RMQ"></label>
+          <label><span>抵達機場（名稱及代碼）</span><input ${a} data-f="to" value="${esc(o.to)}" placeholder="那霸機場 OKA"></label>
+          <label class="flight-edit-wide"><span>起飛時間・台灣時間</span><input type="datetime-local" ${a} data-f="dep" value="${esc(o.dep)}"></label>
+          <label class="flight-edit-wide"><span>抵達時間・日本時間</span><input type="datetime-local" ${a} data-f="arr" value="${esc(o.arr)}"></label>
+          <label class="flight-edit-wide"><span>訂位代號</span><input ${a} data-f="pnr" value="${esc(o.pnr)}" placeholder="輸入訂位代號"></label>
+          <label class="flight-edit-wide"><span>備註</span><textarea ${a} data-f="note" rows="2" placeholder="航廈、行李額度…">${esc(o.note)}</textarea></label>
         </div>
       </div>
     </details>
-    <div class="flight-card-actions"><button class="btn del" data-x="flt" data-i="\${i}">刪除航班</button></div>
-  </li>\`;
+    <div class="flight-card-actions"><button class="btn del" data-x="flt" data-i="${i}">刪除航班</button></div>
+  </li>`;
 }
 function expRow(o,i){
   const a=`data-k="exp" data-i="${i}"`,cur=o.cur||S.fc;
