@@ -264,6 +264,12 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
 .flight-photos .gi.l,.flight-photos .gadd.l{width:88px;height:88px}
 .flight-card-actions{display:flex;justify-content:flex-end;padding-top:2px}
 .flight-card-actions .btn{font-size:13px}
+/* iPhone Safari datetime-local controls need a full-width row to avoid intrinsic-width overlap. */
+@media(max-width:600px){
+  .flight-times{grid-template-columns:minmax(0,1fr);gap:10px}
+  .flight-times label{min-width:0;width:100%}
+  .flight-times label input{display:block;width:100%;min-width:0;max-width:100%;font-size:15px;padding:9px 10px}
+}
 @media(max-width:380px){
   .flight-card{padding:11px;gap:11px}
   .flight-route{grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);gap:5px}
