@@ -241,6 +241,37 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
 .expense-card-meta{font-size:13px;color:var(--sub);grid-column:1/-1}
 .expense-card-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:8px}
 @media(max-width:480px){.expense-people-box,.expense-editor,.expense-list-section{padding:10px}.expense-form-grid{gap:9px}.expense-price-row select{flex-basis:68px;width:68px}.expense-card{padding:10px}}
+
+/* Flight section redesign: presentation only; keep the existing S.flt data model and handlers. */
+.flight-overview{margin-bottom:16px}
+.flight-section-title{display:flex;justify-content:space-between;align-items:center;font-weight:700;margin:8px 2px 10px}
+.flight-section-title span{font-size:13px;font-weight:500;color:var(--sub)}
+.flight-list{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.flight-card{display:grid;gap:13px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--card);min-width:0}
+.flight-card-head{display:grid;grid-template-columns:minmax(88px,.65fr) minmax(0,1.35fr);gap:10px;align-items:end;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.flight-card label{display:flex;flex-direction:column;gap:5px;min-width:0;color:var(--sub);font-size:13px}
+.flight-card label input,.flight-card label select{width:100%;min-width:0;min-height:42px;border:1px solid var(--line);border-radius:9px;padding:7px 9px;background:var(--ft);color:var(--ink);font:inherit;font-size:15px}
+.flight-direction select{font-weight:700}
+.flight-number input{font-weight:700}
+.flight-route{display:grid;grid-template-columns:minmax(0,1fr) 38px minmax(0,1fr);gap:7px;align-items:end}
+.flight-plane{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding-bottom:8px;color:var(--sub)}
+.flight-plane span{font-size:23px;line-height:1}
+.flight-plane small{font-size:10px}
+.flight-times,.flight-extra{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.flight-times label input{font-size:13px;padding:7px 5px}
+.flight-photos{display:grid;gap:7px;color:var(--sub);font-size:13px}
+.flight-photos .gal{gap:8px}
+.flight-photos .gi.l,.flight-photos .gadd.l{width:88px;height:88px}
+.flight-card-actions{display:flex;justify-content:flex-end;padding-top:2px}
+.flight-card-actions .btn{font-size:13px}
+@media(max-width:380px){
+  .flight-card{padding:11px;gap:11px}
+  .flight-route{grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);gap:5px}
+  .flight-plane span{font-size:19px}
+  .flight-times,.flight-extra{gap:7px}
+  .flight-times label input{font-size:12px}
+}
+
 </style>
 </head>
 <body>
@@ -561,7 +592,7 @@ function renderOther(){
     h='<section class="dine-editor"><div class="dine-section-title">'+(DINE_EDIT>=0?'編輯餐廳':'新增餐廳')+'</div>'+dineEditorHtml()+'<div class="dine-editor-actions"><button class="btn main" data-dine-save>'+(DINE_EDIT>=0?'確定儲存':'確定新增')+'</button>'+(DINE_EDIT>=0?'<button class="btn" data-dine-cancel>取消編輯</button>':'')+'</div></section>'+
       '<section class="dine-list-section"><div class="dine-section-title">已新增的餐廳 <span class="dine-count">共 '+S.dine.length+' 家</span></div><div class="collection-filter dine-filter"><input id="dine-search" type="search" placeholder="搜尋餐廳名稱、地址或備註…" aria-label="搜尋餐廳"><label>分類<select id="dfil" data-keep="1">'+opt([['全部','全部'],...DC.map(c=>[c,c])],DF)+'</select></label><label>排序<select id="dsort" data-keep="1">'+opt([['add','加入順序'],['cat','分類'],['name','店名'],['open','開門時間'],['close','打烊時間']],DS)+'</select></label></div><ul class="items dine-list">'+(L.map(x=>dineCard(x.o,x.i)).join('')||'<li class="empty">還沒有備選餐廳，請使用上方表單新增。</li>')+'</ul><div class="empty" data-collection-no-results hidden>找不到符合條件的餐廳。</div></section><div class="total" id="sum"></div>';
   }else if(V==='flt'){
-    h=`<div class="fbox" id="sum"></div><ul class="items">${S.flt.map(fltRow).join('')||'<li class="empty">還沒有機票，按下方新增。</li>'}</ul><div class="bar"><button class="btn main" data-add="flt">＋ 新增航班</button></div>`;
+    h=`<div class="fbox flight-overview" id="sum"></div><div class="flight-section-title">航班明細 <span>${S.flt.length} 段</span></div><ul class="flight-list">${S.flt.map(fltRow).join('')||'<li class="empty">還沒有機票，按下方新增航班。</li>'}</ul><div class="bar"><button class="btn main" data-add="flt">＋ 新增航班</button></div>`;
   }else if(V==='notice'){
     const cats=['交通','入境','住宿','安全','購物','行李','其他'];
     h=`<div class="notice-intro">先在上方填寫資料，按「確定新增」後，下方會整理成方便閱讀的注意事項卡片。</div><section class="notice-editor"><input id="notice-edit-index" type="hidden" value=""><label>標題<input id="notice-title" placeholder="例如：日本租車交通規則"></label><label>分類<select id="notice-cat">${cats.map(c=>'<option>'+c+'</option>').join('')}</select></label><label>內容<textarea id="notice-content" rows="4" placeholder="輸入旅行提醒、規定或注意事項"></textarea></label><label>相關網址<input id="notice-links" type="url" placeholder="https://..."></label><label>影音連結<input id="notice-videos" type="url" placeholder="YouTube、Threads 或其他影片網址"></label><label>補充備註<textarea id="notice-note" rows="2" placeholder="其他補充資訊（可留空）"></textarea></label><div class="notice-editor-actions"><button class="btn main" data-notice-save>確定新增</button><button class="btn" data-notice-cancel hidden>取消編輯</button></div></section><div class="notice-filter"><input id="notice-search" type="search" placeholder="搜尋標題、內容或關鍵字…" aria-label="搜尋注意事項"><select id="notice-filter-cat" aria-label="依分類篩選"><option>全部</option>${cats.map(c=>'<option>'+c+'</option>').join('')}</select></div><div class="notice-list">${(S.notices||[]).map((o,i)=>noticeCard(o,i,cats)).join('')||'<div class="empty">目前還沒有注意事項。</div>'}<div class="empty" data-notice-no-results hidden>找不到符合條件的注意事項。</div></div>`;
@@ -881,7 +912,27 @@ function dineCard(o,i){
 }
 function fltRow(o,i){
   const a=`data-k="flt" data-i="${i}"`;
-  return `<li class="item ex fl"><select ${a} data-f="dir" aria-label="去程或回程"><option value="out"${o.dir!=='ret'?' selected':''}>去程</option><option value="ret"${o.dir==='ret'?' selected':''}>回程</option></select><input ${a} data-f="no" value="${esc(o.no)}" placeholder="航班，例如 BR198"><div class="full">從 <input ${a} data-f="from" value="${esc(o.from)}" placeholder="出發機場"> 到 <input ${a} data-f="to" value="${esc(o.to)}" placeholder="抵達機場"></div><div class="full">起飛 <input type="datetime-local" ${a} data-f="dep" value="${esc(o.dep)}"></div><div class="full">抵達 <input type="datetime-local" ${a} data-f="arr" value="${esc(o.arr)}"></div><div class="full">訂位代號 <input ${a} data-f="pnr" value="${esc(o.pnr)}"></div><div class="full">備註 <input ${a} data-f="note" value="${esc(o.note)}" placeholder="航廈、行李額度…"></div>${gal('flt',i,o,'l')}<button class="btn del sm" data-x="flt" data-i="${i}">刪除</button></li>`;
+  return `<li class="flight-card" data-i="${i}">
+    <div class="flight-card-head">
+      <label class="flight-direction"><span>航段</span><select ${a} data-f="dir" aria-label="去程或回程"><option value="out"${o.dir!=='ret'?' selected':''}>去程</option><option value="ret"${o.dir==='ret'?' selected':''}>回程</option></select></label>
+      <label class="flight-number"><span>航班編號</span><input ${a} data-f="no" value="${esc(o.no)}" placeholder="例如 BR198"></label>
+    </div>
+    <div class="flight-route">
+      <label class="flight-airport"><span>出發地</span><input ${a} data-f="from" value="${esc(o.from)}" placeholder="臺中國際機場 RMQ"></label>
+      <div class="flight-plane"><span>✈</span><small>航線</small></div>
+      <label class="flight-airport"><span>抵達地</span><input ${a} data-f="to" value="${esc(o.to)}" placeholder="那霸機場 OKA"></label>
+    </div>
+    <div class="flight-times">
+      <label><span>起飛時間・台灣時間</span><input type="datetime-local" ${a} data-f="dep" value="${esc(o.dep)}"></label>
+      <label><span>抵達時間・日本時間</span><input type="datetime-local" ${a} data-f="arr" value="${esc(o.arr)}"></label>
+    </div>
+    <div class="flight-extra">
+      <label><span>訂位代號</span><input ${a} data-f="pnr" value="${esc(o.pnr)}" placeholder="輸入訂位代號"></label>
+      <label><span>備註</span><input ${a} data-f="note" value="${esc(o.note)}" placeholder="航廈、行李額度…"></label>
+    </div>
+    <div class="flight-photos"><span>機票／訂位照片</span>${gal('flt',i,o,'l')}</div>
+    <div class="flight-card-actions"><button class="btn del" data-x="flt" data-i="${i}">刪除航班</button></div>
+  </li>`;
 }
 function expRow(o,i){
   const a=`data-k="exp" data-i="${i}"`,cur=o.cur||S.fc;
