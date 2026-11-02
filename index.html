@@ -1244,7 +1244,14 @@ render();
 async function cloudApplySession(session){
   cloudSession=session||null;
   if(!cloudSession){
-    RO=true;render();cloudStatus('請使用管理者或同行分享連結進入，才能讀取共同資料。');
+    RO=true;
+    let restored=false;
+    try{
+      const raw=localStorage.getItem(KEY);
+      if(raw){const local=JSON.parse(raw);if(okS(local)){S=local;restored=true}}
+    }catch(e){console.warn('Local trip cache could not be restored',e)}
+    render();
+    cloudStatus(restored?'尚未登入：目前顯示此裝置的暫存資料（唯讀），登入後即可讀取最新雲端資料。':'尚未登入：請使用管理者或同行分享連結進入，才能讀取共同資料。');
     const b=document.getElementById('cloudLogin');if(b)b.textContent='登入並同步';
     return;
   }
