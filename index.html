@@ -253,7 +253,16 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
 .flight-card label input,.flight-card label select{width:100%;min-width:0;min-height:42px;border:1px solid var(--line);border-radius:9px;padding:7px 9px;background:var(--ft);color:var(--ink);font:inherit;font-size:15px}
 .flight-direction select{font-weight:700}
 .flight-number input{font-weight:700}
-.flight-route{display:grid;grid-template-columns:minmax(0,1fr) 38px minmax(0,1fr);gap:7px;align-items:end}
+.flight-route{display:grid;grid-template-columns:minmax(0,1fr) 38px minmax(0,1fr);gap:7px;align-items:center}
+.flight-airport{align-items:stretch!important}
+.flight-airport-code{display:block;color:var(--ink);font-size:30px;line-height:1.1;font-weight:800;letter-spacing:.02em}
+.flight-airport>span{font-size:12px!important}
+.flight-airport input{font-size:12px!important;padding:6px 7px!important;min-height:36px!important}
+.flight-note label{display:flex;flex-direction:column;gap:5px}
+.flight-note input{width:100%;min-width:0;min-height:42px;border:1px solid var(--line);border-radius:9px;padding:7px 9px;background:var(--ft);color:var(--ink);font:inherit;font-size:15px}
+.flight-extra{grid-template-columns:minmax(0,1fr)}
+.flight-times label input{font-size:15px;padding:9px 10px}
+
 .flight-plane{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding-bottom:8px;color:var(--sub)}
 .flight-plane span{font-size:23px;line-height:1}
 .flight-plane small{font-size:10px}
@@ -918,15 +927,16 @@ function dineCard(o,i){
 }
 function fltRow(o,i){
   const a=`data-k="flt" data-i="${i}"`;
+  const code=v=>{const m=String(v||'').trim().match(/(?:^|\\s)([A-Z0-9]{3,4})$/);return m?m[1]:'---'};
   return `<li class="flight-card" data-i="${i}">
     <div class="flight-card-head">
       <label class="flight-direction"><span>航段</span><select ${a} data-f="dir" aria-label="去程或回程"><option value="out"${o.dir!=='ret'?' selected':''}>去程</option><option value="ret"${o.dir==='ret'?' selected':''}>回程</option></select></label>
       <label class="flight-number"><span>航班編號</span><input ${a} data-f="no" value="${esc(o.no)}" placeholder="例如 BR198"></label>
     </div>
     <div class="flight-route">
-      <label class="flight-airport"><span>出發地</span><input ${a} data-f="from" value="${esc(o.from)}" placeholder="臺中國際機場 RMQ"></label>
+      <label class="flight-airport"><strong class="flight-airport-code">${esc(code(o.from))}</strong><span>出發機場</span><input ${a} data-f="from" value="${esc(o.from)}" placeholder="臺中國際機場 RMQ"></label>
       <div class="flight-plane"><span>✈</span><small>航線</small></div>
-      <label class="flight-airport"><span>抵達地</span><input ${a} data-f="to" value="${esc(o.to)}" placeholder="那霸機場 OKA"></label>
+      <label class="flight-airport"><strong class="flight-airport-code">${esc(code(o.to))}</strong><span>抵達機場</span><input ${a} data-f="to" value="${esc(o.to)}" placeholder="那霸機場 OKA"></label>
     </div>
     <div class="flight-times">
       <label><span>起飛時間・台灣時間</span><input type="datetime-local" ${a} data-f="dep" value="${esc(o.dep)}"></label>
@@ -934,6 +944,8 @@ function fltRow(o,i){
     </div>
     <div class="flight-extra">
       <label><span>訂位代號</span><input ${a} data-f="pnr" value="${esc(o.pnr)}" placeholder="輸入訂位代號"></label>
+    </div>
+    <div class="flight-note">
       <label><span>備註</span><input ${a} data-f="note" value="${esc(o.note)}" placeholder="航廈、行李額度…"></label>
     </div>
     <div class="flight-photos"><span>機票／訂位照片</span>${gal('flt',i,o,'l')}</div>
