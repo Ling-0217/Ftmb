@@ -476,7 +476,7 @@ function expenseCard(o,i){
   const photo=(o.imgs||[]).length?gal('exp',i,o,'s'):'<div class="expense-no-photo">📷 尚未上傳照片</div>';
   return '<li class="expense-card" data-i="'+i+'"><div class="expense-card-photos">'+photo+'</div><div class="expense-card-main"><strong>'+esc(o.t||'未命名支出')+'</strong><b class="expense-card-amount">'+esc(cur)+' '+esc(o.amt||'0')+'</b><div class="expense-card-meta">付款人：'+esc(who)+'</div><div class="expense-card-meta">分攤：'+esc(split)+'</div></div><div class="expense-card-actions"><button class="btn" data-exp-edit="'+i+'">編輯</button><button class="btn del" data-x="exp" data-i="'+i+'">刪除</button></div></li>';
 }
-let WEB_WISH_VOTES=let WEB_WISH_VOTES=[],WEB_WISH_BUSY=false;
+let WEB_WISH_VOTES=[],WEB_WISH_BUSY=false;
 function wishIdentity(){let id='',name='';try{id=localStorage.getItem('wish-voter-id')||'';name=localStorage.getItem('wish-voter-name')||''}catch(e){}if(!id){id='v_'+Math.random().toString(36).slice(2)+Date.now().toString(36);try{localStorage.setItem('wish-voter-id',id)}catch(e){}}return {id,name}}
 async function refreshWishVotes(){
   if(V!=='wish')return;
@@ -984,6 +984,7 @@ oth.addEventListener('change',e=>{
   if(d.img==='expDraft'){addExpenseDraftImgs(e.target.files);return}
   if(d.img==='dineDraft'){addDineDraftImgs(e.target.files);return}
   if(d.img==='wishDraft'){addWishDraftImgs(e.target.files);return}
+  if(e.target.dataset.edraft==='1'){if(EXP_DRAFT){const f=e.target.dataset.f;if(f==='split'){const n=+e.target.dataset.n,z=new Set(EXP_DRAFT.split||[]);e.target.checked?z.add(n):z.delete(n);EXP_DRAFT.split=[...z]}else EXP_DRAFT[f]=e.target.value}return}
   if(e.target.dataset.wdraft==='1'){if(WISH_DRAFT)WISH_DRAFT[e.target.dataset.f]=e.target.value;return}
   if(d.draft==='1'&&d.f==='cat'){DINE_DRAFT.cat=e.target.value;return}
   if(d.img!==undefined){addImgs(d.img,+d.i,e.target.files);return}
