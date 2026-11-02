@@ -272,18 +272,16 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
 .flight-photos{display:grid;gap:7px;color:var(--sub);font-size:13px}
 .flight-photos .gal{display:flex;flex-wrap:nowrap;gap:8px;max-width:100%;overflow-x:auto;overflow-y:hidden;align-items:center;padding:2px 2px 6px;-webkit-overflow-scrolling:touch}
 .flight-photos .gi.l,.flight-photos .gadd.l{flex:0 0 82px;width:82px;height:82px}
-.flight-edit{border-top:1px solid var(--line);padding-top:11px}
-.flight-edit>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;color:var(--sub);font-size:14px;font-weight:650}
-.flight-edit>summary::-webkit-details-marker{display:none}
-.flight-edit>summary:after{content:"＋";font-size:18px;color:var(--ink)}
-.flight-edit[open]>summary:after{content:"−"}
-.flight-edit-form{padding-top:12px}
+.flight-edit{border-top:1px solid var(--line);padding-top:12px}
+.flight-edit:not([open]){display:none}
+.flight-edit[open]{display:block}
+.flight-edit-form{padding-top:0}
 .flight-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
 .flight-edit-grid label{display:flex;flex-direction:column;gap:5px;min-width:0;color:var(--sub);font-size:13px}
 .flight-edit-grid label input,.flight-edit-grid label select,.flight-edit-grid label textarea{width:100%;min-width:0;max-width:100%;min-height:42px;border:1px solid var(--line);border-radius:9px;padding:9px 10px;background:var(--ft);color:var(--ink);font:inherit;font-size:15px}
 .flight-edit-grid label textarea{resize:vertical}
 .flight-edit-wide{grid-column:1/-1}
-.flight-card-actions{display:flex;justify-content:flex-end;padding-top:2px}
+.flight-card-actions{display:flex;justify-content:flex-end;gap:8px;padding-top:2px;flex-wrap:wrap}
 .flight-card-actions .btn{font-size:13px}
 @media(max-width:380px){
   .flight-card{padding:13px;gap:13px}
@@ -970,7 +968,6 @@ function fltRow(o,i){
     ${o.note?'<div class="flight-note-view">'+esc(o.note).replace(/\\n/g,'<br>')+'</div>':''}
     <div class="flight-photos"><span>機票／訂位照片</span>${gal('flt',i,o,'l')}</div>
     <details class="flight-edit">
-      <summary><span>編輯航班資料</span></summary>
       <div class="flight-edit-form">
         <div class="flight-edit-grid">
           <label><span>航段</span><select ${a} data-f="dir" aria-label="去程或回程"><option value="out"${o.dir!=='ret'?' selected':''}>去程</option><option value="ret"${o.dir==='ret'?' selected':''}>回程</option></select></label>
@@ -984,7 +981,7 @@ function fltRow(o,i){
         </div>
       </div>
     </details>
-    <div class="flight-card-actions"><button class="btn del" data-x="flt" data-i="${i}">刪除航班</button></div>
+    <div class="flight-card-actions"><button class="btn" type="button" data-flight-edit="${i}">編輯航班</button><button class="btn del" data-x="flt" data-i="${i}">刪除航班</button></div>
   </li>`;
 }
 function expRow(o,i){
@@ -1099,6 +1096,17 @@ oth.addEventListener('change',e=>{
   if(d.pp!==undefined)render();
 });
 oth.onclick=e=>{
+  const flightEdit=e.target.closest('[data-flight-edit]');
+  if(flightEdit){
+    const card=flightEdit.closest('.flight-card');
+    const panel=card&&card.querySelector('details.flight-edit');
+    if(panel){
+      panel.open=!panel.open;
+      flightEdit.textContent=panel.open?'收起編輯':'編輯航班';
+      if(panel.open)panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+    }
+    return;
+  }
   const expSave=e.target.closest('[data-exp-save]');
   if(expSave){const o=EXP_DRAFT||{};if(!(o.t||'').trim()){flash('請先輸入支出項目');oth.querySelector('[data-edraft][data-f="t"]')?.focus();return}if(o.amt===''||!Number.isFinite(+o.amt)||+o.amt<0){flash('請輸入正確金額');oth.querySelector('[data-edraft][data-f="amt"]')?.focus();return}const item={t:(o.t||'').trim(),amt:o.amt,cur:o.cur||S.fc,who:Math.min(S.people.length-1,Math.max(0,+o.who||0)),split:(o.split||[]).filter(j=>j<S.people.length),imgs:o.imgs||[]};if(EXP_EDIT>=0)S.exp[EXP_EDIT]=Object.assign({},S.exp[EXP_EDIT],item);else S.exp.push(item);EXP_EDIT=-1;EXP_DRAFT=null;save();render();flash('支出已儲存');return}
   const expEdit=e.target.closest('[data-exp-edit]');if(expEdit){EXP_EDIT=+expEdit.dataset.expEdit;EXP_DRAFT=JSON.parse(JSON.stringify(S.exp[EXP_EDIT]||{}));EXP_DRAFT.split=EXP_DRAFT.split||S.people.map((_,j)=>j);EXP_DRAFT.imgs=EXP_DRAFT.imgs||[];render();oth.querySelector('.expense-editor')?.scrollIntoView({behavior:'smooth',block:'start'});return}
