@@ -242,51 +242,57 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
 .expense-card-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:8px}
 @media(max-width:480px){.expense-people-box,.expense-editor,.expense-list-section{padding:10px}.expense-form-grid{gap:9px}.expense-price-row select{flex-basis:68px;width:68px}.expense-card{padding:10px}}
 
-/* Flight section redesign: presentation only; keep the existing S.flt data model and handlers. */
+/* Flight cards: read-first presentation with an expandable edit form. */
 .flight-overview{margin-bottom:16px}
 .flight-section-title{display:flex;justify-content:space-between;align-items:center;font-weight:700;margin:8px 2px 10px}
 .flight-section-title span{font-size:13px;font-weight:500;color:var(--sub)}
 .flight-list{list-style:none;margin:0;padding:0;display:grid;gap:14px}
-.flight-card{display:grid;gap:13px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--card);min-width:0}
-.flight-card-head{display:grid;grid-template-columns:minmax(88px,.65fr) minmax(0,1.35fr);gap:10px;align-items:end;padding-bottom:12px;border-bottom:1px solid var(--line)}
-.flight-card label{display:flex;flex-direction:column;gap:5px;min-width:0;color:var(--sub);font-size:13px}
-.flight-card label input,.flight-card label select{width:100%;min-width:0;min-height:42px;border:1px solid var(--line);border-radius:9px;padding:7px 9px;background:var(--ft);color:var(--ink);font:inherit;font-size:15px}
-.flight-direction select{font-weight:700}
-.flight-number input{font-weight:700}
-.flight-route{display:grid;grid-template-columns:minmax(0,1fr) 38px minmax(0,1fr);gap:7px;align-items:center}
-.flight-airport{align-items:stretch!important}
-.flight-airport-code{display:block;color:var(--ink);font-size:30px;line-height:1.1;font-weight:800;letter-spacing:.02em}
-.flight-airport>span{font-size:12px!important}
-.flight-airport input{font-size:12px!important;padding:6px 7px!important;min-height:36px!important}
-.flight-note label{display:flex;flex-direction:column;gap:5px}
-.flight-note input{width:100%;min-width:0;min-height:42px;border:1px solid var(--line);border-radius:9px;padding:7px 9px;background:var(--ft);color:var(--ink);font:inherit;font-size:15px}
-.flight-extra{grid-template-columns:minmax(0,1fr)}
-.flight-times label input{font-size:15px;padding:9px 10px}
-
-.flight-plane{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding-bottom:8px;color:var(--sub)}
-.flight-plane span{font-size:23px;line-height:1}
-.flight-plane small{font-size:10px}
-.flight-times,.flight-extra{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.flight-times label input{font-size:13px;padding:7px 5px}
+.flight-card{display:grid;gap:15px;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--card);min-width:0}
+.flight-view-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.flight-direction-pill{display:inline-flex;align-items:center;padding:5px 12px;border-radius:999px;background:var(--ft);color:var(--ink);font-size:13px;font-weight:700}
+.flight-view-number{font-size:14px;font-weight:700;color:var(--sub);overflow-wrap:anywhere;text-align:right}
+.flight-route-view{display:grid;grid-template-columns:minmax(0,1fr) 54px minmax(0,1fr);gap:8px;align-items:center;padding:5px 0}
+.flight-point{display:flex;flex-direction:column;gap:5px;min-width:0}
+.flight-point strong{font-size:clamp(32px,8vw,42px);line-height:1;font-weight:800;letter-spacing:.02em;color:var(--ink)}
+.flight-point span{font-size:13px;color:var(--sub);overflow-wrap:anywhere;line-height:1.4}
+.flight-point-arrival{text-align:right;align-items:flex-end}
+.flight-plane-view{display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--sub)}
+.flight-plane-view span{font-size:25px;line-height:1}
+.flight-plane-view i{display:block;width:100%;height:1px;background:var(--line)}
+.flight-time-view{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:13px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.flight-time-point{display:flex;flex-direction:column;gap:4px;min-width:0}
+.flight-time-point:last-child{text-align:right;align-items:flex-end}
+.flight-time-point span{font-size:12px;color:var(--sub)}
+.flight-time-point strong{font-size:24px;line-height:1.2;font-weight:750;color:var(--ink);font-variant-numeric:tabular-nums}
+.flight-time-point small{font-size:13px;color:var(--sub)}
+.flight-booking-view{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:13px;color:var(--sub)}
+.flight-booking-view strong{font-size:15px;color:var(--ink);letter-spacing:.04em}
+.flight-muted{color:var(--sub)}
+.flight-note-view{padding:10px 12px;border-radius:10px;background:var(--ft);font-size:14px;line-height:1.55;overflow-wrap:anywhere}
 .flight-photos{display:grid;gap:7px;color:var(--sub);font-size:13px}
-.flight-photos .gal{gap:8px}
-.flight-photos .gi.l,.flight-photos .gadd.l{width:88px;height:88px}
+.flight-photos .gal{display:flex;flex-wrap:nowrap;gap:8px;max-width:100%;overflow-x:auto;overflow-y:hidden;align-items:center;padding:2px 2px 6px;-webkit-overflow-scrolling:touch}
+.flight-photos .gi.l,.flight-photos .gadd.l{flex:0 0 82px;width:82px;height:82px}
+.flight-edit{border-top:1px solid var(--line);padding-top:11px}
+.flight-edit>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;color:var(--sub);font-size:14px;font-weight:650}
+.flight-edit>summary::-webkit-details-marker{display:none}
+.flight-edit>summary:after{content:"＋";font-size:18px;color:var(--ink)}
+.flight-edit[open]>summary:after{content:"−"}
+.flight-edit-form{padding-top:12px}
+.flight-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.flight-edit-grid label{display:flex;flex-direction:column;gap:5px;min-width:0;color:var(--sub);font-size:13px}
+.flight-edit-grid label input,.flight-edit-grid label select,.flight-edit-grid label textarea{width:100%;min-width:0;max-width:100%;min-height:42px;border:1px solid var(--line);border-radius:9px;padding:9px 10px;background:var(--ft);color:var(--ink);font:inherit;font-size:15px}
+.flight-edit-grid label textarea{resize:vertical}
+.flight-edit-wide{grid-column:1/-1}
 .flight-card-actions{display:flex;justify-content:flex-end;padding-top:2px}
 .flight-card-actions .btn{font-size:13px}
-/* iPhone Safari datetime-local controls need a full-width row to avoid intrinsic-width overlap. */
-@media(max-width:600px){
-  .flight-times{grid-template-columns:minmax(0,1fr);gap:10px}
-  .flight-times label{min-width:0;width:100%}
-  .flight-times label input{display:block;width:100%;min-width:0;max-width:100%;font-size:15px;padding:9px 10px}
-}
 @media(max-width:380px){
-  .flight-card{padding:11px;gap:11px}
-  .flight-route{grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);gap:5px}
-  .flight-plane span{font-size:19px}
-  .flight-times,.flight-extra{gap:7px}
-  .flight-times label input{font-size:12px}
+  .flight-card{padding:13px;gap:13px}
+  .flight-route-view{grid-template-columns:minmax(0,1fr) 42px minmax(0,1fr);gap:6px}
+  .flight-point strong{font-size:32px}
+  .flight-time-point strong{font-size:22px}
+  .flight-edit-grid{grid-template-columns:minmax(0,1fr)}
+  .flight-edit-wide{grid-column:auto}
 }
-
 </style>
 </head>
 <body>
@@ -925,32 +931,61 @@ function dineCard(o,i){
   const warn=dineWarn(o);
   return '<li class="dine-card" data-i="'+i+'"><div class="dine-card-main">'+photo+'<div class="dine-card-info"><div class="dine-card-heading"><strong>'+esc(o.name||'未命名餐廳')+'</strong>'+(tags||'<span class="dine-category">其他</span>')+'</div><div class="dine-card-address">'+esc(o.addr||'尚未填寫地址')+'</div><div class="dine-card-summary">'+hours+'</div>'+(warn?'<div class="warn">'+esc(warn)+'</div>':'')+'</div></div><details class="dine-card-details"><summary>查看詳細資料</summary><div class="dine-detail-line">'+off+'</div><div class="dine-detail-line dine-detail-note">'+esc(o.note||'尚無備註')+'</div><div class="dine-detail-actions"><a class="btn" target="_blank" rel="noopener" data-dmap="'+i+'">在地圖查看</a><button class="btn" data-dine-edit="'+i+'">編輯</button><button class="btn del" data-x="dine" data-i="'+i+'">刪除</button></div></details></li>';
 }
+function flightCode(v){
+  const m=String(v||'').trim().match(/([A-Z0-9]{3,4})$/);
+  return m?m[1]:'---';
+}
+function flightAirportName(v){
+  return String(v||'').trim().replace(/\s+[A-Z0-9]{3,4}$/,'')||'尚未填寫機場';
+}
+function flightDate(v){
+  const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  return m?{date:m[1]+'/'+m[2]+'/'+m[3],time:m[4]+':'+m[5]}:{date:'尚未設定',time:'--:--'};
+}
 function fltRow(o,i){
-  const a=`data-k="flt" data-i="${i}"`;
-  const code=v=>{const m=String(v||'').trim().match(/(?:^|\\s)([A-Z0-9]{3,4})$/);return m?m[1]:'---'};
-  return `<li class="flight-card" data-i="${i}">
-    <div class="flight-card-head">
-      <label class="flight-direction"><span>航段</span><select ${a} data-f="dir" aria-label="去程或回程"><option value="out"${o.dir!=='ret'?' selected':''}>去程</option><option value="ret"${o.dir==='ret'?' selected':''}>回程</option></select></label>
-      <label class="flight-number"><span>航班編號</span><input ${a} data-f="no" value="${esc(o.no)}" placeholder="例如 BR198"></label>
+  const a=\`data-k="flt" data-i="\${i}"\`;
+  const dep=flightDate(o.dep),arr=flightDate(o.arr);
+  const dir=o.dir==='ret'?'回程':'去程';
+  return \`<li class="flight-card" data-i="\${i}">
+    <div class="flight-view-head">
+      <span class="flight-direction-pill">\${dir}</span>
+      <span class="flight-view-number">\${esc(o.no||'尚未填寫航班編號')}</span>
     </div>
-    <div class="flight-route">
-      <label class="flight-airport"><strong class="flight-airport-code">${esc(code(o.from))}</strong><span>出發機場</span><input ${a} data-f="from" value="${esc(o.from)}" placeholder="臺中國際機場 RMQ"></label>
-      <div class="flight-plane"><span>✈</span><small>航線</small></div>
-      <label class="flight-airport"><strong class="flight-airport-code">${esc(code(o.to))}</strong><span>抵達機場</span><input ${a} data-f="to" value="${esc(o.to)}" placeholder="那霸機場 OKA"></label>
+    <div class="flight-route-view">
+      <div class="flight-point">
+        <strong>\${esc(flightCode(o.from))}</strong>
+        <span>\${esc(flightAirportName(o.from))}</span>
+      </div>
+      <div class="flight-plane-view" aria-hidden="true"><span>✈</span><i></i></div>
+      <div class="flight-point flight-point-arrival">
+        <strong>\${esc(flightCode(o.to))}</strong>
+        <span>\${esc(flightAirportName(o.to))}</span>
+      </div>
     </div>
-    <div class="flight-times">
-      <label><span>起飛時間・台灣時間</span><input type="datetime-local" ${a} data-f="dep" value="${esc(o.dep)}"></label>
-      <label><span>抵達時間・日本時間</span><input type="datetime-local" ${a} data-f="arr" value="${esc(o.arr)}"></label>
+    <div class="flight-time-view">
+      <div class="flight-time-point"><span>起飛・台灣時間</span><strong>\${dep.time}</strong><small>\${dep.date}</small></div>
+      <div class="flight-time-point"><span>抵達・日本時間</span><strong>\${arr.time}</strong><small>\${arr.date}</small></div>
     </div>
-    <div class="flight-extra">
-      <label><span>訂位代號</span><input ${a} data-f="pnr" value="${esc(o.pnr)}" placeholder="輸入訂位代號"></label>
-    </div>
-    <div class="flight-note">
-      <label><span>備註</span><input ${a} data-f="note" value="${esc(o.note)}" placeholder="航廈、行李額度…"></label>
-    </div>
-    <div class="flight-photos"><span>機票／訂位照片</span>${gal('flt',i,o,'l')}</div>
-    <div class="flight-card-actions"><button class="btn del" data-x="flt" data-i="${i}">刪除航班</button></div>
-  </li>`;
+    <div class="flight-booking-view">\${o.pnr?'<span>訂位代號</span><strong>'+esc(o.pnr)+'</strong>':'<span class="flight-muted">尚未填寫訂位代號</span>'}</div>
+    \${o.note?'<div class="flight-note-view">'+esc(o.note).replace(/\\n/g,'<br>')+'</div>':''}
+    <div class="flight-photos"><span>機票／訂位照片</span>\${gal('flt',i,o,'l')}</div>
+    <details class="flight-edit">
+      <summary><span>編輯航班資料</span></summary>
+      <div class="flight-edit-form">
+        <div class="flight-edit-grid">
+          <label><span>航段</span><select \${a} data-f="dir" aria-label="去程或回程"><option value="out"\${o.dir!=='ret'?' selected':''}>去程</option><option value="ret"\${o.dir==='ret'?' selected':''}>回程</option></select></label>
+          <label><span>航班編號</span><input \${a} data-f="no" value="\${esc(o.no)}" placeholder="例如 BR198"></label>
+          <label><span>出發機場（名稱及代碼）</span><input \${a} data-f="from" value="\${esc(o.from)}" placeholder="臺中國際機場 RMQ"></label>
+          <label><span>抵達機場（名稱及代碼）</span><input \${a} data-f="to" value="\${esc(o.to)}" placeholder="那霸機場 OKA"></label>
+          <label class="flight-edit-wide"><span>起飛時間・台灣時間</span><input type="datetime-local" \${a} data-f="dep" value="\${esc(o.dep)}"></label>
+          <label class="flight-edit-wide"><span>抵達時間・日本時間</span><input type="datetime-local" \${a} data-f="arr" value="\${esc(o.arr)}"></label>
+          <label class="flight-edit-wide"><span>訂位代號</span><input \${a} data-f="pnr" value="\${esc(o.pnr)}" placeholder="輸入訂位代號"></label>
+          <label class="flight-edit-wide"><span>備註</span><textarea \${a} data-f="note" rows="2" placeholder="航廈、行李額度…">\${esc(o.note)}</textarea></label>
+        </div>
+      </div>
+    </details>
+    <div class="flight-card-actions"><button class="btn del" data-x="flt" data-i="\${i}">刪除航班</button></div>
+  </li>\`;
 }
 function expRow(o,i){
   const a=`data-k="exp" data-i="${i}"`,cur=o.cur||S.fc;
@@ -1017,6 +1052,7 @@ function renderMap(){
 }
 $('nav').onclick=e=>{const b=e.target.closest('[data-v]');if(b){V=b.dataset.v;render()}};
 const oth=$('oth');
+oth.addEventListener('toggle',e=>{if(e.target.matches('details.flight-edit')&&!e.target.open)render()},true);
 let LASTADD=0;
 oth.addEventListener('pointerup',e=>{if(!e.target.closest('[data-addcat]'))return;const v=($('newcat').value||'').trim();if(v&&!S.packCats.includes(v)){S.packCats.push(v);save();LASTADD=Date.now();render();flash('已新增分類「'+v+'」')}});
 oth.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='newcat'){const v=e.target.value.trim();if(v&&!S.packCats.includes(v)){S.packCats.push(v);save();render();flash('已新增分類「'+v+'」')}}});
