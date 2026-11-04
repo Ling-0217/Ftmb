@@ -624,11 +624,12 @@ function renderOther(){
 
 
 let TAX_DRAFT={shop:'',date:'',amount:'',tax:'',platform:'',feeRate:'',feeBase:'tax',refundFee:'',cardFee:'',cashFee:'',actualReceived:'',method:'信用卡',rate:''},TAX_EDIT=-1;
-function taxEstimate(o){const paymentFee=(o.method==='現金'?+o.cashFee||0:+o.cardFee||0);return Math.max(0,(+o.tax||0)-(+o.platformFee||0)-paymentFee-(+o.refundFee||0))}
+function taxPaymentFee(o){return o.method==='現金'?(+o.cashFee||0):(o.method==='信用卡'?(+o.cardFee||0):0)}
+function taxEstimate(o){return Math.max(0,(+o.tax||0)-(+o.platformFee||0)-taxPaymentFee(o)-(+o.refundFee||0))}
 function taxActual(o){return o.actualReceived!==''&&o.actualReceived!==null&&o.actualReceived!==undefined?Math.max(0,+o.actualReceived||0):taxEstimate(o)}
-function taxCalcDraft(){const o=TAX_DRAFT||{},base=o.feeBase==='gross'?(+o.amount||0):(+o.tax||0),fee=base*(+o.feeRate||0)/100,paymentFee=o.method==='現金'?(+o.cashFee||0):(+o.cardFee||0);return {fee,paymentFee,actual:Math.max(0,(+o.tax||0)-fee-paymentFee-(+o.refundFee||0))}}
+function taxCalcDraft(){const o=TAX_DRAFT||{},base=o.feeBase==='gross'?(+o.amount||0):(+o.tax||0),fee=base*(+o.feeRate||0)/100,paymentFee=taxPaymentFee(o);return {fee,paymentFee,actual:Math.max(0,(+o.tax||0)-fee-paymentFee-(+o.refundFee||0))}}
 function taxFreeHtml(){
- const L=S.taxFree||[],sum=L.reduce((a,o)=>{a.amount+=(+o.amount||0);a.tax+=(+o.tax||0);a.fee+=(+o.platformFee||0)+(+o.refundFee||0)+(o.method==='現金'?(+o.cashFee||0):(+o.cardFee||0));a.actual+=taxActual(o);a.twd+=taxActual(o)*(+o.rate||0);return a},{amount:0,tax:0,fee:0,actual:0,twd:0}),o=TAX_DRAFT||{},c=taxCalcDraft();
+ const L=S.taxFree||[],sum=L.reduce((a,o)=>{a.amount+=(+o.amount||0);a.tax+=(+o.tax||0);a.fee+=(+o.platformFee||0)+(+o.refundFee||0)+taxPaymentFee(o);a.actual+=taxActual(o);a.twd+=taxActual(o)*(+o.rate||0);return a},{amount:0,tax:0,fee:0,actual:0,twd:0}),o=TAX_DRAFT||{},c=taxCalcDraft();
  const f=(k,l,t='text',p='')=>'<label>'+l+'<input data-tf="'+k+'" type="'+t+'" value="'+esc(o[k]??'')+'" placeholder="'+p+'"></label>';
  const sel=(k,l,opts)=>'<label>'+l+'<select data-tf="'+k+'">'+opts.map(([v,label])=>'<option value="'+v+'"'+(o[k]===v?' selected':'')+'>'+label+'</option>').join('')+'</select></label>';
  return '<div class="tax-summary"><div class="tax-total"><span>累計購物金額</span><b>'+f2(sum.amount)+' JPY</b></div><div class="tax-total"><span>理論退稅</span><b>'+f2(sum.tax)+' JPY</b></div><div class="tax-total"><span>平台及退款費用</span><b>−'+f2(sum.fee)+' JPY</b></div><div class="tax-total"><b>實際拿回</b><b>'+f2(sum.actual)+' JPY</b></div><div class="tax-total"><span>實際退款換算台幣（依各筆匯率）</span><b>NT$ '+f2(sum.twd)+'</b></div></div>'+
