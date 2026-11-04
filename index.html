@@ -729,7 +729,7 @@ function paintVotes(){
     if(b){const m=!!(VOTES[UID]&&VOTES[UID][id]);b.textContent=m?'♥ 我想買':'♡ 我也想買';b.setAttribute('aria-pressed',m)}
   });
 }
-async function toggleVote(id){
+async async function toggleVote(id){
   if(!DB||!UID||vbusy)return;
   vbusy=true;
   const w=Object.assign({},VOTES[UID]||{});
