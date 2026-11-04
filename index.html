@@ -603,7 +603,8 @@ function renderOther(){
       '<section class="expense-people-box"><div class="expense-section-title">旅伴（可改名、可刪除）</div><div class="ppl">'+S.people.map((p,i)=>'<span class="pp"><input data-pp="'+i+'" value="'+esc(p)+'" aria-label="旅伴"><button class="btn del" data-delp="'+i+'" aria-label="刪除旅伴"'+(S.people.length<2?' disabled':'')+'>✕</button></span>').join('')+'<button class="btn" data-add="ppl">＋ 旅伴</button></div></section>'+
       '<section class="expense-editor"><div class="expense-section-title">'+(EXP_EDIT>=0?'編輯支出':'新增支出')+'</div>'+expenseEditorHtml()+'<div class="dine-editor-actions"><button class="btn main" data-exp-save>'+(EXP_EDIT>=0?'確定儲存':'確定新增')+'</button>'+(EXP_EDIT>=0?'<button class="btn" data-exp-cancel>取消編輯</button>':'')+'</div></section>'+
       '<section class="expense-list-section"><div class="expense-section-title">支出明細 <span class="dine-count">共 '+S.exp.length+' 筆</span></div><ul class="expense-list">'+(S.exp.map(expenseCard).join('')||'<li class="empty">還沒有支出，請使用上方表單新增。</li>')+'</ul></section>';
-}else if(V==='tax'){h=taxFreeHtml();\n  }else if(V==='dine'){
+}else if(V==='tax'){h=taxFreeHtml();
+  }else if(V==='dine'){
     const L=S.dine.map((o,i)=>({o,i})).filter(x=>DF==='全部'||dineMeals(x.o).includes(DF)||dineKind(x.o)===DF||x.o.cat===DF);
     const K={cat:x=>DC.indexOf(dineMeals(x.o)[0]||dineKind(x.o)||x.o.cat),name:x=>x.o.name||'',open:x=>x.o.open||'99:99',close:x=>x.o.close||'99:99'}[DS];
     if(K)L.sort((x,y)=>{const a=K(x),b=K(y);return a<b?-1:a>b?1:0});
@@ -1068,7 +1069,8 @@ oth.addEventListener('pointerup',e=>{if(!e.target.closest('[data-addcat]'))retur
 oth.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='newcat'){const v=e.target.value.trim();if(v&&!S.packCats.includes(v)){S.packCats.push(v);save();render();flash('已新增分類「'+v+'」')}}});
 oth.addEventListener('input',e=>{
   const t=e.target,d=t.dataset;
-  if(d.tf){TAX_DRAFT[d.tf]=t.value;updateTaxPreview();return}\n  if(t.id==='notice-search'){applyNoticeFilters();return}
+  if(d.tf){TAX_DRAFT[d.tf]=t.value;updateTaxPreview();return}
+  if(t.id==='notice-search'){applyNoticeFilters();return}
   if(t.id==='wish-search'){applyCollectionSearch('wish');return}
   if(t.id==='dine-search'){applyCollectionSearch('dine');return}
   if(t.dataset.edraft==='1'){if(EXP_DRAFT){const f=t.dataset.f;if(f==='split'){const n=+t.dataset.n,z=new Set(EXP_DRAFT.split||[]);t.checked?z.add(n):z.delete(n);EXP_DRAFT.split=[...z]}else EXP_DRAFT[f]=t.value}return}
@@ -1120,7 +1122,9 @@ oth.onclick=e=>{
     }
     return;
   }
-  const taxSave=e.target.closest('[data-tax-save]');if(taxSave){const o=TAX_DRAFT||{};if(!(o.shop||'').trim()){flash('請輸入店家名稱');return}const c=taxCalcDraft(),item={shop:o.shop.trim(),date:o.date||'',amount:+o.amount||0,tax:+o.tax||0,platform:o.platform||'',feeRate:+o.feeRate||0,feeBase:o.feeBase||'tax',platformFee:c.fee,refundFee:+o.refundFee||0,method:o.method||'信用卡',rate:+o.rate||0};if(TAX_EDIT>=0)S.taxFree[TAX_EDIT]=item;else S.taxFree.push(item);TAX_EDIT=-1;TAX_DRAFT={shop:'',date:'',amount:'',tax:'',platform:'',feeRate:'',feeBase:'tax',refundFee:'',method:'信用卡',rate:''};save();render();flash('購物退稅紀錄已儲存');return}\n  const te=e.target.closest('[data-tax-edit]');if(te){TAX_EDIT=+te.dataset.taxEdit;TAX_DRAFT=Object.assign({feeBase:'tax',method:'信用卡'},S.taxFree[TAX_EDIT]);render();return}const td=e.target.closest('[data-tax-del]');if(td){S.taxFree.splice(+td.dataset.taxDel,1);save();render();return}if(e.target.closest('[data-tax-cancel]')){TAX_EDIT=-1;TAX_DRAFT={shop:'',date:'',amount:'',tax:'',platform:'',feeRate:'',feeBase:'tax',refundFee:'',method:'信用卡',rate:''};render();return}\n  const expSave=e.target.closest('[data-exp-save]');
+  const taxSave=e.target.closest('[data-tax-save]');if(taxSave){const o=TAX_DRAFT||{};if(!(o.shop||'').trim()){flash('請輸入店家名稱');return}const c=taxCalcDraft(),item={shop:o.shop.trim(),date:o.date||'',amount:+o.amount||0,tax:+o.tax||0,platform:o.platform||'',feeRate:+o.feeRate||0,feeBase:o.feeBase||'tax',platformFee:c.fee,refundFee:+o.refundFee||0,method:o.method||'信用卡',rate:+o.rate||0};if(TAX_EDIT>=0)S.taxFree[TAX_EDIT]=item;else S.taxFree.push(item);TAX_EDIT=-1;TAX_DRAFT={shop:'',date:'',amount:'',tax:'',platform:'',feeRate:'',feeBase:'tax',refundFee:'',method:'信用卡',rate:''};save();render();flash('購物退稅紀錄已儲存');return}
+  const te=e.target.closest('[data-tax-edit]');if(te){TAX_EDIT=+te.dataset.taxEdit;TAX_DRAFT=Object.assign({feeBase:'tax',method:'信用卡'},S.taxFree[TAX_EDIT]);render();return}const td=e.target.closest('[data-tax-del]');if(td){S.taxFree.splice(+td.dataset.taxDel,1);save();render();return}if(e.target.closest('[data-tax-cancel]')){TAX_EDIT=-1;TAX_DRAFT={shop:'',date:'',amount:'',tax:'',platform:'',feeRate:'',feeBase:'tax',refundFee:'',method:'信用卡',rate:''};render();return}
+  const expSave=e.target.closest('[data-exp-save]');
   if(expSave){const o=EXP_DRAFT||{};if(!(o.t||'').trim()){flash('請先輸入支出項目');oth.querySelector('[data-edraft][data-f="t"]')?.focus();return}if(o.amt===''||!Number.isFinite(+o.amt)||+o.amt<0){flash('請輸入正確金額');oth.querySelector('[data-edraft][data-f="amt"]')?.focus();return}const item={t:(o.t||'').trim(),amt:o.amt,cur:o.cur||S.fc,who:Math.min(S.people.length-1,Math.max(0,+o.who||0)),split:(o.split||[]).filter(j=>j<S.people.length),imgs:o.imgs||[]};if(EXP_EDIT>=0)S.exp[EXP_EDIT]=Object.assign({},S.exp[EXP_EDIT],item);else S.exp.push(item);EXP_EDIT=-1;EXP_DRAFT=null;save();render();flash('支出已儲存');return}
   const expEdit=e.target.closest('[data-exp-edit]');if(expEdit){EXP_EDIT=+expEdit.dataset.expEdit;EXP_DRAFT=JSON.parse(JSON.stringify(S.exp[EXP_EDIT]||{}));EXP_DRAFT.split=EXP_DRAFT.split||S.people.map((_,j)=>j);EXP_DRAFT.imgs=EXP_DRAFT.imgs||[];render();oth.querySelector('.expense-editor')?.scrollIntoView({behavior:'smooth',block:'start'});return}
   if(e.target.closest('[data-exp-cancel]')){EXP_EDIT=-1;EXP_DRAFT=null;render();return}
@@ -1375,7 +1379,9 @@ function allText(){
   [...C,''].forEach(c=>{const A=(S.pack||[]).filter(o=>c===''?!C.includes(o.cat):o.cat===c);if(!A.length)return;L.push((c||'未分類')+'：');A.forEach(o=>L.push('  '+(o.done?'[x] ':'[ ] ')+(o.t||'')))});
   L.push('');L.push('【願望清單】');
   (S.wish||[]).forEach(o=>L.push((o.done?'[x] ':'[ ] ')+(o.t||'')+(o.price?'　'+o.price+' '+(o.cur||S.fc):'')+(o.cat?'　'+o.cat:'')+(o.note?'　'+o.note:'')));
-  L.push('');L.push('【購物退稅】');\n  (S.taxFree||[]).forEach(o=>L.push('・'+(o.shop||'未命名店家')+' 購物 '+(o.amount||0)+' JPY／應退 '+(o.tax||0)+'／平台費 '+(o.platformFee||0)+'／退款處理費 '+(o.refundFee||0)+'／實拿 '+taxActual(o)+' JPY'));\n  L.push('');L.push('【注意事項】');
+  L.push('');L.push('【購物退稅】');
+  (S.taxFree||[]).forEach(o=>L.push('・'+(o.shop||'未命名店家')+' 購物 '+(o.amount||0)+' JPY／應退 '+(o.tax||0)+'／平台費 '+(o.platformFee||0)+'／退款處理費 '+(o.refundFee||0)+'／實拿 '+taxActual(o)+' JPY'));
+  L.push('');L.push('【注意事項】');
   (S.notices||[]).forEach(o=>{L.push('・'+(o.title||'未命名')+'（'+(o.cat||'其他')+'）');if(o.content)L.push(o.content);if(o.links)L.push('網址：'+o.links);if(o.videos)L.push('影片：'+o.videos);if(o.note)L.push('補充：'+o.note)});
   L.push('');L.push('【旅費】');
   const c=expCalc();
