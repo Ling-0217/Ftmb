@@ -408,6 +408,37 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
   .backup-card .backup-actions{justify-content:flex-start}
 }
 
+
+/* Backup card controls: compact mobile sizing */
+@media(max-width:480px){
+  .backup-card .backup-add-row{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    gap:7px!important;
+    align-items:center!important;
+    margin-top:11px!important;
+  }
+  .backup-card .backup-add-row select{
+    width:100%!important;
+    min-height:38px!important;
+    height:38px!important;
+    padding:6px 9px!important;
+    font-size:13px!important;
+    border-radius:9px!important;
+  }
+  .backup-card .backup-add-row .btn.main{
+    width:auto!important;
+    min-width:0!important;
+    min-height:38px!important;
+    height:38px!important;
+    padding:6px 12px!important;
+    border-radius:9px!important;
+    font-size:13px!important;
+    line-height:1.2!important;
+    white-space:nowrap!important;
+  }
+}
+
 </style>
 </head>
 <body>
