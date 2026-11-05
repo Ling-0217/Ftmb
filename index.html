@@ -612,7 +612,7 @@ function renderOther(){
     h=(RO?'':'<section class="backup-editor"><div class="dine-section-title">'+(BACKUP_EDIT>=0?'編輯備選景點':'新增備選景點')+'</div>'+backupSpotEditorHtml()+'<div class="dine-editor-actions"><button class="btn main" data-spot-save>'+(BACKUP_EDIT>=0?'確定儲存':'加入備選清單')+'</button>'+(BACKUP_EDIT>=0?'<button class="btn" data-spot-cancel>取消編輯</button>':'')+'</div></section>')+
       '<section class="backup-list-section"><div class="dine-section-title">備選景點清單 <span class="dine-count">共 '+S.backupSpots.length+' 個</span></div><div class="collection-filter"><input id="backup-search" type="search" placeholder="搜尋景點名稱、地區或備註…" aria-label="搜尋備選景點"><label>地區<select id="backup-filter"><option value="全部"'+(BACKUP_FILTER==='全部'?' selected':'')+'>全部</option>'+BACKUP_REGIONS.map(x=>'<option'+(BACKUP_FILTER===x?' selected':'')+'>'+x+'</option>').join('')+'</select></label></div><ul class="items backup-list">'+(L.map(x=>backupSpotCard(x.o,x.i)).join('')||'<li class="empty">還沒有備選景點，看到想去的地方就先收藏在這裡。</li>')+'</ul><div class="empty" data-backup-no-results hidden>找不到符合條件的景點。</div></section>';
   }else if(V==='pack'){h=packHtml()}else if(V==='wish'){
-  if(V==='pack'){h=packHtml()}else if(V==='wish'){
+
     let wishIdsChanged=false;S.wish.forEach(o=>{if(!o.id){o.id=uid();wishIdsChanged=true}});if(wishIdsChanged)save();
     const L=S.wish.map((o,i)=>({o,i})).filter(x=>WF==='全部'||(x.o.cat||'其他')===WF);
     const opt=arr=>arr.map(c=>'<option value="'+esc(c)+'"'+(c===WF?' selected':'')+'>'+esc(c)+'</option>').join('');
