@@ -328,6 +328,7 @@ const SUPABASE_KEY='sb_publishable_-7pt5czVhb0w_Ow0VSkZ-Q_FbPsvWdO';
 let sb=null,cloudSession=null,cloudTimer=0,cloudBooted=false;
 const cloudStatus=t=>{const e=document.getElementById('cloudStatus');if(e)e.textContent=t};
 const KEY='trip-planner-v1';
+const LOCAL_TEST=new URLSearchParams(location.search).get('localtest')==='1';
 const uid=()=>Math.random().toString(36).slice(2,9);
 const blank=()=>({title:'',start:'',cur:0,days:[{name:'',items:[]}]});
 let S=blank(),RO=true;
@@ -337,7 +338,7 @@ let SHARE_TOKEN='',SHARE_ROLE='',shareTimer=0,sharePoll=0,shareDirty=false,pendi
 const save=()=>{if(RO)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){flash('瀏覽器儲存空間不足，請減少圖片')}
   if(SHARE_TOKEN&&sb&&['owner','editor'].includes(SHARE_ROLE)){shareDirty=true;clearTimeout(shareTimer);shareTimer=setTimeout(cloudShareSaveNow,650)}
   else if(cloudSession&&sb){clearTimeout(cloudTimer);cloudTimer=setTimeout(cloudSaveNow,700)}
-  else cloudStatus('尚未使用共同編輯分享連結，這次修改只存在此裝置。')
+  else cloudStatus(LOCAL_TEST?'測試模式：修改只保存在這個瀏覽器，不會同步雲端。':'尚未使用共同編輯分享連結，這次修改只存在此裝置。')
 };
 async function cloudShareSaveNow(){
   if(!SHARE_TOKEN||!sb||!['owner','editor'].includes(SHARE_ROLE)||!shareDirty)return;
@@ -1305,15 +1306,16 @@ render();
 async function cloudApplySession(session){
   cloudSession=session||null;
   if(!cloudSession){
-    RO=true;
+    RO=!LOCAL_TEST;
     let restored=false;
     try{
       const raw=localStorage.getItem(KEY);
       if(raw){const local=JSON.parse(raw);if(okS(local)){S=local;restored=true}}
     }catch(e){console.warn('Local trip cache could not be restored',e)}
     render();
-    cloudStatus(restored?'尚未登入：目前顯示此裝置的暫存資料（唯讀），登入後即可讀取最新雲端資料。':'尚未登入：請使用管理者或同行分享連結進入，才能讀取共同資料。');
-    const b=document.getElementById('cloudLogin');if(b)b.textContent='登入並同步';
+    cloudStatus(LOCAL_TEST?'測試模式：可測試新增、編輯與排入行程；資料只保存在此瀏覽器，不會同步雲端。':(restored?'尚未登入：目前顯示此裝置的暫存資料（唯讀），登入後即可讀取最新雲端資料。':'尚未登入：請使用管理者或同行分享連結進入，才能讀取共同資料。'));
+    const b=document.getElementById('cloudLogin');if(b){b.textContent=LOCAL_TEST?'測試模式（不登入）':'登入並同步';b.disabled=LOCAL_TEST}
+    const em=document.getElementById('cloudEmail');if(em&&LOCAL_TEST)em.disabled=true;
     return;
   }
   const email=(cloudSession.user&&cloudSession.user.email||'').toLowerCase();
