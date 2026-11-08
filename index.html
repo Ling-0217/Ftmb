@@ -520,6 +520,7 @@ const okS=p=>p&&Array.isArray(p.days)&&p.days.length;
 try{const p=JSON.parse(document.getElementById('data').textContent||'null');if(okS(p))S=p}catch(e){}
 let SHARE_TOKEN='',SHARE_ROLE='',shareTimer=0,sharePoll=0,shareDirty=false,pendingLocal=null,shareUpdated='';
 const save=()=>{if(RO)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){flash('瀏覽器儲存空間不足，請減少圖片')}
+  if(LOCAL_TEST){cloudStatus('測試模式：修改只保存在這個瀏覽器，不會同步雲端。');return}
   if(SHARE_TOKEN&&sb&&['owner','editor'].includes(SHARE_ROLE)){shareDirty=true;clearTimeout(shareTimer);shareTimer=setTimeout(cloudShareSaveNow,650)}
   else if(cloudSession&&sb){clearTimeout(cloudTimer);cloudTimer=setTimeout(cloudSaveNow,700)}
   else cloudStatus(LOCAL_TEST?'測試模式：修改只保存在這個瀏覽器，不會同步雲端。':'尚未使用共同編輯分享連結，這次修改只存在此裝置。')
@@ -1564,10 +1565,15 @@ document.getElementById('cloudLogin').addEventListener('click',async()=>{
   try{
     if(!window.supabase||!window.supabase.createClient)throw new Error('Supabase 程式載入失敗');
     sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-    const {data:{session}}=await sb.auth.getSession();
-    const shared=await loadShareMode();
-    if(!shared)await cloudApplySession(session);
-    if(!cloudBooted){cloudBooted=true;sb.auth.onAuthStateChange((_event,session)=>{if(!SHARE_TOKEN)setTimeout(()=>cloudApplySession(session),0)})}
+    if(LOCAL_TEST){
+      SHARE_TOKEN='';SHARE_ROLE='';
+      await cloudApplySession(null);
+    }else{
+      const {data:{session}}=await sb.auth.getSession();
+      const shared=await loadShareMode();
+      if(!shared)await cloudApplySession(session);
+      if(!cloudBooted){cloudBooted=true;sb.auth.onAuthStateChange((_event,session)=>{if(!SHARE_TOKEN)setTimeout(()=>cloudApplySession(session),0)})}
+    }
   }catch(e){
     console.error('Supabase boot failed',e);
     RO=false;try{const raw=localStorage.getItem(KEY);if(raw){const local=JSON.parse(raw);if(okS(local))S=local}}catch(e){}render();cloudStatus('雲端服務暫時無法連線：目前仍可在此裝置編輯並儲存。');
