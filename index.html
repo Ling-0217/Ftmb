@@ -42,6 +42,7 @@ textarea{resize:vertical;min-height:2.4em;color:var(--sub);font-size:14px}
 .btn.main{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:700}
 .bar{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .empty{color:var(--sub);padding:18px 4px;text-align:center}
+#shareJump{margin:5px 0 12px;padding:7px 12px;font-size:13px;text-decoration:none}#shareJump[hidden]{display:none!important}
 .share-manager,.share-migrate{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--card);margin:8px 0}.share-create{display:grid;grid-template-columns:minmax(0,1fr) 112px auto;gap:7px}.share-create input,.share-create select{min-width:0;width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;background:var(--ft);color:var(--ink)}.share-list{display:grid;gap:7px;margin-top:10px}.share-row{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:8px}.share-row small{display:block;color:var(--sub);font-size:12px}.share-row-actions{display:flex;gap:5px}.share-new-link{margin-top:9px;padding:9px;border-radius:8px;background:var(--ft);overflow-wrap:anywhere;font-size:13px}.share-new-link button{margin-top:6px}@media(max-width:480px){.share-create{grid-template-columns:1fr 1fr}.share-create input{grid-column:1/-1}.share-create button{grid-column:1/-1}.share-row{align-items:flex-start;flex-direction:column}.share-row-actions{width:100%}}.cloud-login-box{display:flex;gap:8px;align-items:end;flex-wrap:wrap;width:100%;margin:8px 0}.cloud-login-box label{display:block;font-size:13px;color:var(--sub);width:100%}.cloud-login-box input{flex:1;min-width:220px;background:var(--card);border:1px solid var(--line);padding:10px 12px}.cloud-login-box button{flex:none}.foot{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--sub);font-size:13px}
 .meta{flex-wrap:wrap}.pw{grid-column:2;display:flex;align-items:center;gap:6px}.pw a,.leg a{flex:none;text-decoration:none;font-size:13px}
 .leg{list-style:none;display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:2px 0 10px 12px;padding:8px 10px;border:1px dashed var(--line);border-radius:10px;background:var(--ft);font-size:14px;color:var(--sub)}
@@ -485,6 +486,7 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
   <div id="mapsvg" class="mapsvg" style=""></div>
   <div id="mapcap" class="sub" style=""></div>
   <div id="nav" class="tabs" role="tablist"><button class="tab" role="tab" aria-selected="true" data-v="plan">行程</button><button class="tab" role="tab" aria-selected="false" data-v="dine">餐廳</button><button class="tab" role="tab" aria-selected="false" data-v="wish">願望</button><button class="tab" role="tab" aria-selected="false" data-v="exp">旅費</button><button class="tab" role="tab" aria-selected="false" data-v="flt">機票</button><button class="tab" role="tab" aria-selected="false" data-v="pack">行李</button><button class="tab" role="tab" aria-selected="false" data-v="notice">注意事項</button><button class="tab" role="tab" aria-selected="false" data-v="fx">匯率</button></div>
+  <a class="btn" id="shareJump" href="#shareManager" hidden>🔗 管理分享連結</a>
   <div class="meta box" style=""><label>目的地<input id="dest" placeholder="例如：沖繩"></label><label>出發日<input id="start" type="date"></label><label>回國日<input id="end" type="date"></label><div id="dinfo" class="dinfo"></div></div>
   <div id="tabs" class="tabs" role="tablist" style=""></div>
   <section id="day" class="day" style=""></section>
@@ -493,7 +495,7 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
     <div class="cloud-login-box" id="cloudLoginBox"><label for="cloudEmail">電子郵件</label><input id="cloudEmail" type="email" data-keep="1" autocomplete="email" inputmode="email" placeholder="輸入已獲授權的電子郵件"><button class="btn main" id="cloudLogin" type="button">寄送登入連結</button></div>
     <span id="cloudStatus" aria-live="polite">尚未登入：修改前請先登入，才能保存到雲端。</span>
     <section id="shareManager" class="share-manager" hidden>
-      <b>同行分享管理</b><p class="sub">建立不同權限的分享連結。連結請只傳給同行的人。</p>
+      <b>同行分享管理</b><p class="sub">從這裡建立「唯讀」、「願望登記」或「共同編輯」連結，朋友不需要登入。完整連結只會在建立時出現，請立即複製保存。</p>
       <div class="share-create"><input id="share-label" placeholder="分享名稱，例如：小美"><select id="share-role"><option value="editor">共同編輯</option><option value="voter">願望登記</option><option value="viewer">唯讀</option></select><button class="btn main" id="share-create-btn">建立連結</button></div>
       <div id="share-new-link" class="share-new-link" hidden></div><div data-share-list class="share-list">載入分享清單中…</div>
     </section>
@@ -518,7 +520,7 @@ const blank=()=>({title:'',start:'',cur:0,days:[{name:'',items:[]}]});
 let S=blank(),RO=true;
 const okS=p=>p&&Array.isArray(p.days)&&p.days.length;
 try{const p=JSON.parse(document.getElementById('data').textContent||'null');if(okS(p))S=p}catch(e){}
-let SHARE_TOKEN='',SHARE_ROLE='',shareTimer=0,sharePoll=0,shareDirty=false,pendingLocal=null,shareUpdated='';
+let SHARE_TOKEN='',SHARE_ROLE='',EMAIL_ROLE='',shareTimer=0,sharePoll=0,shareDirty=false,pendingLocal=null,shareUpdated='';
 const save=()=>{if(RO)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){flash('瀏覽器儲存空間不足，請減少圖片')}
   if(LOCAL_TEST){cloudStatus('測試模式：修改只保存在這個瀏覽器，不會同步雲端。');return}
   if(SHARE_TOKEN&&sb&&['owner','editor'].includes(SHARE_ROLE)){shareDirty=true;clearTimeout(shareTimer);shareTimer=setTimeout(cloudShareSaveNow,650)}
@@ -537,13 +539,23 @@ async function pollSharedState(){
     if(data.updated_at&&data.updated_at!==shareUpdated&&!shareDirty){if(okS(data.data)){S=data.data;shareUpdated=data.updated_at;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}render();cloudStatus('已取得最新共同資料 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));}}
   }catch(e){cloudStatus('同步連線中斷：'+(e.message||'請檢查分享連結'))}
 }
-function shareUrl(token){return location.origin+location.pathname+'?share='+encodeURIComponent(token)}
+function shareUrl(token){return 'https://okinawa-itinerary-two.vercel.app'+location.pathname+'?share='+encodeURIComponent(token)}
+function canManageShares(){
+  return !!((SHARE_TOKEN&&SHARE_ROLE==='owner')||(!SHARE_TOKEN&&cloudSession&&EMAIL_ROLE==='owner'));
+}
 async function renderShareManager(){
-  const box=document.getElementById('shareManager');if(!box||SHARE_ROLE!=='owner'||!SHARE_TOKEN)return;
-  const {data,error}=await sb.rpc('trip_share_list',{p_owner_token:SHARE_TOKEN});
+  const box=document.getElementById('shareManager'),jump=document.getElementById('shareJump');
+  const allowed=canManageShares()&&!LOCAL_TEST;
+  if(box)box.hidden=!allowed;
+  if(jump)jump.hidden=!allowed;
+  if(!box||!allowed||!sb)return;
+  const byToken=SHARE_TOKEN&&SHARE_ROLE==='owner';
+  const {data,error}=byToken
+    ?await sb.rpc('trip_share_list',{p_owner_token:SHARE_TOKEN})
+    :await sb.rpc('trip_owner_share_list');
   if(error){box.querySelector('[data-share-list]').textContent='無法讀取分享清單：'+error.message;return}
   const rows=Array.isArray(data)?data:[];
-  box.querySelector('[data-share-list]').innerHTML=rows.map(x=>'<div class="share-row"><div><b>'+esc(x.label||'未命名分享')+'</b><small>'+({editor:'共同編輯',voter:'願望登記',viewer:'唯讀'}[x.role]||x.role)+' · '+(x.revoked_at?'已撤銷':'使用中')+'</small></div><div class="share-row-actions">'+(!x.revoked_at?'<button class="btn del" data-share-revoke="'+esc(x.id)+'">撤銷</button>':'')+'</div></div>').join('')||'<p class="sub">目前還沒有建立分享連結。</p>';
+  box.querySelector('[data-share-list]').innerHTML=rows.map(x=>'<div class="share-row"><div><b>'+esc(x.label||'未命名分享')+'</b><small>'+({editor:'共同編輯',voter:'願望登記',viewer:'唯讀'}[x.role]||x.role)+' · '+(x.revoked_at?'已撤銷':'使用中')+'</small></div><div class="share-row-actions">'+(!x.revoked_at?'<button class="btn del" data-share-revoke="'+esc(x.id)+'">撤銷</button>':'')+'</div></div>').join('')||'<p class="sub">目前尚未建立給朋友的分享連結。</p>';
 }
 async function loadShareMode(){
   const params=new URLSearchParams(location.search);let token=params.get('share')||'';
@@ -556,6 +568,7 @@ async function loadShareMode(){
   render();cloudStatus(({owner:'管理者',editor:'共同編輯',voter:'願望登記',viewer:'唯讀'}[SHARE_ROLE]||'分享')+'模式 · 雲端資料已載入');
   const login=document.getElementById('cloudLoginBox');if(login)login.hidden=true;
   const manager=document.getElementById('shareManager');if(manager)manager.hidden=SHARE_ROLE!=='owner';
+  const jump=document.getElementById('shareJump');if(jump)jump.hidden=SHARE_ROLE!=='owner';
   const migrate=document.getElementById('shareMigrate');if(migrate)migrate.hidden=!pendingLocal;
   if(SHARE_ROLE==='owner')renderShareManager();
   if(sharePoll)clearInterval(sharePoll);sharePoll=setInterval(pollSharedState,4000);
@@ -802,7 +815,7 @@ function renderOther(){
     let wishIdsChanged=false;S.wish.forEach(o=>{if(!o.id){o.id=uid();wishIdsChanged=true}});if(wishIdsChanged)save();
     const L=S.wish.map((o,i)=>({o,i})).filter(x=>WF==='全部'||(x.o.cat||'其他')===WF);
     const opt=arr=>arr.map(c=>'<option value="'+esc(c)+'"'+(c===WF?' selected':'')+'>'+esc(c)+'</option>').join('');
-    h='<section class="wish-editor"><div class="dine-section-title">'+(WISH_EDIT>=0?'編輯願望':'新增想買的東西')+'</div>'+wishEditorHtml()+'<div class="dine-editor-actions"><button class="btn main" data-wish-save>'+(WISH_EDIT>=0?'確定儲存':'確定新增')+'</button>'+(WISH_EDIT>=0?'<button class="btn" data-wish-cancel>取消編輯</button>':'')+'</div></section>'+
+    h=(RO?'':'<section class="wish-editor"><div class="dine-section-title">'+(WISH_EDIT>=0?'編輯願望':'新增想買的東西')+'</div>'+wishEditorHtml()+'<div class="dine-editor-actions"><button class="btn main" data-wish-save>'+(WISH_EDIT>=0?'確定儲存':'確定新增')+'</button>'+(WISH_EDIT>=0?'<button class="btn" data-wish-cancel>取消編輯</button>':'')+'</div></section>')+
       '<section class="wish-list-section"><div class="dine-section-title">願望清單 <span class="dine-count">共 '+S.wish.length+' 項</span></div><div class="collection-filter"><input id="wish-search" type="search" placeholder="搜尋願望名稱、分類或備註…" aria-label="搜尋願望"><label>分類<select id="wfil" data-keep="1"><option value="全部"'+(WF==='全部'?' selected':'')+'>全部</option>'+opt(WC)+'</select></label></div><ul class="items wish-list">'+(L.map(x=>wishCard(x.o,x.i)).join('')||'<li class="empty">還沒有願望，請使用上方表單新增。</li>')+'</ul><div class="empty" data-collection-no-results hidden>找不到符合條件的願望。</div></section><div class="total" id="sum"></div>';
    }else if(V==='exp'){
     h='<div class="expense-summary"><div class="total" id="sum"></div><div id="ptot" class="ptot"></div></div>'+
@@ -1490,6 +1503,8 @@ function startSync(){
 render();
 async function cloudApplySession(session){
   cloudSession=session||null;
+  EMAIL_ROLE='';
+  await renderShareManager();
   if(!cloudSession){
     RO=!LOCAL_TEST;
     let restored=false;
@@ -1512,6 +1527,7 @@ async function cloudApplySession(session){
       const b=document.getElementById('cloudLogin');if(b)b.textContent='登出';
       return;
     }
+    EMAIL_ROLE=member.role;
     RO=false;
     const {data:row,error:loadError}=await sb.from('trip_state').select('data,updated_at').eq('id','main').maybeSingle();
     if(loadError)throw loadError;
@@ -1526,6 +1542,7 @@ async function cloudApplySession(session){
       await cloudSaveNow();
     }
     const b=document.getElementById('cloudLogin');if(b)b.textContent='登出';
+    await renderShareManager();
   }catch(e){
     console.error('Supabase init failed',e);
     RO=true;render();cloudStatus('雲端連線失敗：'+(e.message||'請稍後重試'));
@@ -1535,14 +1552,17 @@ document.addEventListener('click',async e=>{
   const create=e.target.closest('#share-create-btn');
   if(create){
     const role=document.getElementById('share-role').value,label=document.getElementById('share-label').value.trim();create.disabled=true;
-    try{const {data,error}=await sb.rpc('trip_share_create',{p_owner_token:SHARE_TOKEN,p_role:role,p_label:label});if(error)throw error;
+    try{if(!canManageShares())throw new Error('請先使用管理者信箱登入');
+      const {data,error}=SHARE_TOKEN&&SHARE_ROLE==='owner'
+        ?await sb.rpc('trip_share_create',{p_owner_token:SHARE_TOKEN,p_role:role,p_label:label})
+        :await sb.rpc('trip_owner_share_create',{p_role:role,p_label:label});if(error)throw error;
       const url=shareUrl(data.token),box=document.getElementById('share-new-link');box.hidden=false;box.innerHTML='<b>已建立'+({editor:'共同編輯',voter:'願望登記',viewer:'唯讀'}[role])+'連結</b><div>'+esc(url)+'</div><button class="btn" data-copy-share-url="'+esc(url)+'">複製連結</button>';document.getElementById('share-label').value='';renderShareManager();
     }catch(err){flash('建立分享失敗：'+err.message,5000)}finally{create.disabled=false}
   }
   const copy=e.target.closest('[data-copy-share-url]');
   if(copy){try{await navigator.clipboard.writeText(copy.dataset.copyShareUrl);flash('已複製分享連結')}catch(err){flash(copy.dataset.copyShareUrl,7000)}}
   const revoke=e.target.closest('[data-share-revoke]');
-  if(revoke){if(!confirm('確定撤銷這條分享連結？撤銷後對方將無法再讀取或修改。'))return;const {error}=await sb.rpc('trip_share_revoke',{p_owner_token:SHARE_TOKEN,p_share_id:revoke.dataset.shareRevoke});if(error){flash('撤銷失敗：'+error.message);return}renderShareManager();flash('分享連結已撤銷')}
+  if(revoke){if(!confirm('確定撤銷這條分享連結？撤銷後對方將無法再讀取或修改。'))return;if(!canManageShares()){flash('需要管理者權限');return}const {error}=SHARE_TOKEN&&SHARE_ROLE==='owner'?await sb.rpc('trip_share_revoke',{p_owner_token:SHARE_TOKEN,p_share_id:revoke.dataset.shareRevoke}):await sb.rpc('trip_owner_share_revoke',{p_share_id:revoke.dataset.shareRevoke});if(error){flash('撤銷失敗：'+error.message);return}renderShareManager();flash('分享連結已撤銷')}
   if(e.target.closest('#share-upload-local')&&pendingLocal){S=pendingLocal;pendingLocal=null;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(err){}const m=document.getElementById('shareMigrate');if(m)m.hidden=true;shareDirty=true;await cloudShareSaveNow();render();flash('已將本機資料上傳到雲端')}
 });
 document.getElementById('cloudLogin').addEventListener('click',async()=>{
