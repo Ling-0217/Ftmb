@@ -477,6 +477,8 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
   .backup-card .backup-add-row .btn.main{font-size:11px!important;padding:4px 8px!important}
 }
 
+#sharePage[hidden]{display:none!important}#sharePage{margin-top:12px}
+.share-page-title{margin:0 0 6px;font-size:19px;font-weight:700}
 </style>
 </head>
 <body>
@@ -490,14 +492,16 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
   <div id="tabs" class="tabs" role="tablist" style=""></div>
   <section id="day" class="day" style=""></section>
   <section id="oth" class="day" style="display: none;"><div class="fx"><label>外幣<input data-fx="fc" value="JPY" maxlength="3"></label><label>本國幣<input data-fx="hc" value="TWD" maxlength="3"></label><label>1 JPY =<input type="number" step="any" data-fx="rate" value="0.21" placeholder="例如 0.21"> TWD</label></div><div class="calc"><label>JPY<input type="number" step="any" id="cf" data-keep="1" placeholder="0"></label><span>⇄</span><label>TWD<input type="number" step="any" id="ch" data-keep="1" placeholder="0"></label></div><p class="sub">其他幣別匯率（1 單位外幣 = 多少 TWD）</p><div class="ppl"><input id="newrt" maxlength="3" placeholder="例如 USD"><button class="btn" data-addrt="1">＋ 幣別</button></div><p class="sub">這個頁面無法自動取得即時匯率，請先查好再填入上方。 <a class="btn" target="_blank" rel="noopener" data-fxlink="1">查詢今日匯率</a></p></section>
-  <div class="foot">
-    <div class="cloud-login-box" id="cloudLoginBox"><label for="cloudEmail">電子郵件</label><input id="cloudEmail" type="email" data-keep="1" autocomplete="email" inputmode="email" placeholder="輸入已獲授權的電子郵件"><button class="btn main" id="cloudLogin" type="button">寄送登入連結</button></div>
-    <span id="cloudStatus" aria-live="polite">尚未登入：修改前請先登入，才能保存到雲端。</span>
+  <section id="sharePage" hidden>
     <section id="shareManager" class="share-manager" hidden>
-      <b>同行分享管理</b><p class="sub">從這裡建立「唯讀」、「願望登記」或「共同編輯」連結，朋友不需要登入。完整連結只會在建立時出現，請立即複製保存。</p>
+      <h2 class="share-page-title">同行分享管理</h2><p class="sub">從這裡建立「唯讀」、「願望登記」或「共同編輯」連結，朋友不需要登入。完整連結只會在建立時出現，請立即複製保存。</p>
       <div class="share-create"><input id="share-label" placeholder="分享名稱，例如：小美"><select id="share-role"><option value="editor">共同編輯</option><option value="voter">願望登記</option><option value="viewer">唯讀</option></select><button class="btn main" id="share-create-btn">建立連結</button></div>
       <div id="share-new-link" class="share-new-link" hidden></div><div data-share-list class="share-list">載入分享清單中…</div>
     </section>
+  </section>
+  <div class="foot">
+    <div class="cloud-login-box" id="cloudLoginBox"><label for="cloudEmail">電子郵件</label><input id="cloudEmail" type="email" data-keep="1" autocomplete="email" inputmode="email" placeholder="輸入已獲授權的電子郵件"><button class="btn main" id="cloudLogin" type="button">寄送登入連結</button></div>
+    <span id="cloudStatus" aria-live="polite">尚未登入：修改前請先登入，才能保存到雲端。</span>
     <section id="shareMigrate" class="share-migrate" hidden><b>偵測到這台手機有尚未同步的舊資料</b><p class="sub">如果這台是你之前編輯行程的手機，請上傳本機資料；若要以雲端版本為準，請忽略此提示。</p><button class="btn main" id="share-upload-local">將這台手機的資料上傳到雲端</button></section>
     <button class="btn main" id="pub" hidden="">發布更新給同行的人</button>
     <button class="btn" id="copy">複製全部內容</button>
@@ -603,10 +607,13 @@ function dateOf(i){
 }
 function flash(t){const m=$('msg');m.textContent=t;setTimeout(()=>m.textContent='',2000)}
 function render(){
+  if(V==='share'&&(!canManageShares()||LOCAL_TEST))V='plan';
   norm();renderNav();$('trip').value=S.title;
-  const P=V==='plan';
+  const P=V==='plan',SH=V==='share';
   [document.querySelector('.meta'),$('tabs'),$('day'),$('mapbar'),$('mapsvg'),$('mapcap')].forEach(x=>x.style.display=P?'':'none');
-  $('oth').style.display=P?'none':'';
+  $('oth').style.display=(P||SH)?'none':'';
+  $('sharePage').hidden=!SH;
+  if(SH){setDC(SECC.share);applyRO();void renderShareManager();return}
   if(!P){setDC(SECC[V]);renderOther();return}
   if(S.cur>=S.days.length)S.cur=S.days.length-1;
   renderMap();setDC(DAYC[S.cur%DAYC.length]);
@@ -700,10 +707,10 @@ $('copy').onclick=async()=>{
 $('reset').onclick=async()=>{if(await ask('清除全部行程並重新開始？')){S=blank();save();render()}};
 let V='plan';let CANVOTE=true;
 const DAYC=['#C9A9A6','#A8B5A2','#9DB1BF','#B7A3B5','#D1BFA3','#C9A58C','#8FA9A5'];
-const SECC={dine:'#C9A58C',flt:'#9DB1BF',pack:'#A8B5A2',wish:'#C9A9A6',exp:'#D1BFA3',tax:'#A8B5A2',notice:'#B7A3B5',fx:'#B7A3B5'};
+const SECC={dine:'#C9A58C',flt:'#9DB1BF',pack:'#A8B5A2',wish:'#C9A9A6',exp:'#D1BFA3',tax:'#A8B5A2',notice:'#B7A3B5',fx:'#B7A3B5',share:'#C9A9A6'};
 const setDC=c=>document.documentElement.style.setProperty('--dc',c);
 const SEC={plan:'行程',backup:'備選景點',dine:'餐廳',wish:'願望',exp:'旅費',tax:'購物退稅',flt:'機票',pack:'行李',notice:'注意事項',fx:'匯率'};
-function renderNav(){$('nav').innerHTML=Object.entries(SEC).map(([k,v])=>`<button class="tab" role="tab" aria-selected="${k===V}" data-v="${k}">${v}</button>`).join('')+`<a class="tab" id="shareJump" href="#shareManager" ${canManageShares()&&!LOCAL_TEST?'':'hidden'}>🔗 管理分享連結</a>`}
+function renderNav(){$('nav').innerHTML=Object.entries(SEC).map(([k,v])=>`<button class="tab" role="tab" aria-selected="${k===V}" data-v="${k}">${v}</button>`).join('')+`<button class="tab" type="button" role="tab" id="shareJump" aria-selected="${V==='share'}" data-v="share" ${canManageShares()&&!LOCAL_TEST?'':'hidden'}>🔗 分享管理</button>`}
 function norm(){S.rates??={};if(!(parseFloat(S.rates.JPY)>0)&&parseFloat(S.rate)>0)S.rates.JPY=parseFloat(S.rate);S.rate='';[S.wish,S.dine,S.exp,S.flt].forEach(L=>(L||[]).forEach(o=>{if(o.img&&!o.imgs){o.imgs=[o.img];delete o.img}}));S.packCats??=['日用品','票券','衣物','電子用品','藥品'];S.notices??=[];S.dine??=[];if(!RO)(S.wish||[]).forEach(o=>{o.id??=uid()});S.flt??=[];S.pack??=[];S.wish??=[];S.exp??=[];S.taxFree??=[];S.backupSpots??=[];S.people??=['我'];S.fc??='JPY';S.hc??='TWD';S.rate??=''}
 const R=()=>parseFloat((S.rates||{})[S.fc])||0;
 const f2=n=>(Math.round(n*100)/100).toLocaleString();
