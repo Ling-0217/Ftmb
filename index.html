@@ -661,6 +661,71 @@ main{max-width:730px;padding:14px 14px 70px}
   #nav .tab,#tabs .tab,.btn{transition:transform .15s ease,box-shadow .15s ease}
   #nav .tab:active,#tabs .tab:active,.btn:active{transform:translate(1px,2px)}
 }
+
+/* Warm Morandi refinement: softer outlines, breathing room, coherent controls */
+.journal-cover{border-width:1.5px;box-shadow:0 4px 13px rgba(91,86,82,.10);margin-bottom:21px}
+.journal-cover .journal-stamp{border-width:1.5px;box-shadow:1px 2px 0 #D9CBC0}
+#trip.title{border-bottom-width:2px;margin-bottom:17px}
+#nav.tabs{gap:10px;padding-bottom:15px;margin-bottom:20px;border-bottom:1.5px solid #D8CEC6}
+#nav .tab{border-width:1.5px!important;box-shadow:none!important;min-height:41px;padding:7px 15px!important}
+#nav .tab[aria-selected="true"]{box-shadow:0 2px 0 #D9CBC0!important}
+.meta.box{border:1.5px solid #C5B7AD!important;box-shadow:0 3px 10px rgba(91,86,82,.055);padding:16px!important;margin-bottom:21px!important;gap:12px!important}
+.meta.box input{border-width:1px!important;background:#FEFBF7!important}
+#tabs.tabs{gap:10px;padding-bottom:17px}
+#tabs .tab{min-height:66px;border:1.5px solid #BBAAA0!important;box-shadow:none!important;padding:9px 13px!important}
+#tabs .tab[aria-selected="true"]{border-color:#97887D!important;box-shadow:0 3px 0 #D4BEB0!important}
+#day.day,#oth.day{
+  border:1.5px solid #B7A79C!important;
+  box-shadow:0 4px 16px rgba(91,86,82,.065);
+}
+#day.day{padding:22px 19px 24px!important}
+#day .dayhead{margin-bottom:20px;padding-bottom:16px;border-bottom-width:1px}
+#day .dayhead b{border-width:1.5px;padding:6px 13px}
+#day .items{padding-top:5px}
+#day .items:before{border-left:2px dashed #C7B6AA}
+#day .item{
+  border:1.5px solid #B9A99F!important;
+  box-shadow:0 2px 7px rgba(91,86,82,.04);
+  padding:16px 14px!important;
+  gap:9px 12px;
+  margin-bottom:19px;
+  border-radius:17px;
+}
+#day .item:before{border-width:1.5px;width:13px;height:13px}
+#day .item .time{border-width:1px!important}
+#day .item .full{border:1px solid rgba(170,152,139,.48);min-height:50px}
+#day .item .tools{gap:7px}
+#day .item .tools .btn{min-height:33px;padding:6px 10px}
+.btn{border-width:1px;border-radius:10px;line-height:1.4}
+.btn.main{border-width:1.5px!important}
+#oth .dine-card,#oth .wish-card,#oth .expense-card,
+#oth .flight-card,#oth .backup-card,#oth .tax-form,
+#oth .tax-summary,#oth .expense-people-box,#oth .expense-editor,
+#oth .expense-list-section,#oth .backup-editor,#oth .backup-list-section{
+  border:1.5px solid #BBAAA0!important;
+  box-shadow:0 2px 8px rgba(91,86,82,.05);
+}
+#oth .flight-card{padding:18px!important;gap:16px}
+#oth .expense-list,#oth .dine-list,#oth .flight-list{gap:13px}
+#oth .flight-card-actions .btn,#oth .expense-card-actions .btn{
+  min-height:35px;padding:7px 12px;font-size:13px;
+}
+#sharePage .share-manager{border-width:1.5px;box-shadow:0 3px 10px rgba(91,86,82,.06)}
+@media(max-width:480px){
+  main{padding:12px 12px 68px}
+  #nav.tabs{gap:8px;margin-bottom:17px}
+  #nav .tab{padding:7px 13px!important;min-height:39px}
+  .meta.box{padding:13px!important;gap:10px!important}
+  #tabs.tabs{gap:8px;padding-bottom:14px}
+  #tabs .tab{min-height:59px;padding:7px 10px!important}
+  #day.day{padding:16px 12px 19px!important}
+  #day .dayhead{margin-bottom:15px;padding-bottom:11px}
+  #day .item{padding:12px 10px!important;gap:7px 7px;margin-bottom:15px}
+  #day .item .tools{gap:5px}
+  #day .item .tools .btn{padding:6px 9px;min-height:33px}
+  #oth .flight-card{padding:14px!important;gap:13px}
+}
+
 /* ===== end pastel journal preview ===== */
 </style>
 </head>
