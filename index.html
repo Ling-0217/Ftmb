@@ -479,10 +479,221 @@ input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--acc)}
 
 #sharePage[hidden]{display:none!important}#sharePage{margin-top:12px}
 .share-page-title{margin:0 0 6px;font-size:19px;font-weight:700}
+
+/* ===== Okinawa Pastel Journal: visual-only preview (2026-11-11) ===== */
+:root{
+  --bg:#fffaf2;--card:#fffdfa;--ink:#38383b;--sub:#7e7973;
+  --line:#d7cfc4;--ft:#fff4e4;--acc:#f9cf79;--accink:#353337;
+  --danger:#b75f66;
+}
+body{background:#fffaf2;color:#39383b;font-family:"PingFang TC","Noto Sans TC",system-ui,sans-serif}
+main{max-width:730px;padding:14px 14px 70px}
+.journal-cover{
+  position:relative;overflow:hidden;background:#dff1f9;
+  border:3px solid #3c3a3b;border-radius:25px;
+  box-shadow:4px 5px 0 #e4d4c5;margin:4px 0 18px;
+}
+.journal-cover svg{display:block;width:100%;height:auto;max-height:200px}
+.journal-cover .journal-stamp{
+  position:absolute;left:14px;top:12px;border:2px solid #3c3a3b;
+  background:#fffaf0;padding:4px 11px;border-radius:30px;
+  font-size:11px;font-weight:800;letter-spacing:.08em;
+  box-shadow:2px 2px 0 #3c3a3b;
+}
+#trip.title{
+  display:block;width:100%;margin:0 0 12px;padding:8px 10px;
+  font-family:"PingFang TC","Noto Sans TC",sans-serif;
+  font-weight:900;font-size:clamp(24px,6.2vw,34px);
+  line-height:1.4;letter-spacing:.035em;text-align:center;
+  color:#383538;border:none;border-bottom:3px dotted #efcbb3;
+  border-radius:0;
+}
+#nav.tabs{
+  gap:9px;margin:0 -2px 15px;padding:7px 2px 11px;
+  border-bottom:3px solid #3d393b;
+  scrollbar-width:none;scroll-snap-type:x proximity;
+}
+#nav.tabs::-webkit-scrollbar,#tabs.tabs::-webkit-scrollbar{display:none}
+#nav .tab{
+  border:2.5px solid #3c3a3b!important;background:#fffdfa!important;
+  border-radius:999px!important;min-height:43px;
+  padding:8px 17px!important;white-space:nowrap;
+  font-size:15px;font-weight:750;box-shadow:2px 2px 0 #e7dad0;
+  scroll-snap-align:start;
+}
+#nav .tab[aria-selected="true"]{
+  background:#ffd67e!important;border-color:#3c3a3b!important;
+  color:#353337!important;box-shadow:2px 3px 0 #3c3a3b;
+}
+.meta.box{
+  border:2.5px solid #3c3a3b!important;
+  border-radius:20px!important;background:#fffdf9!important;
+  box-shadow:3px 4px 0 #f6e1c4;
+  padding:14px!important;margin:0 0 16px!important;gap:9px!important;
+}
+.meta.box label{color:#776e66;font-weight:700;font-size:12px}
+.meta.box input{
+  border:1.5px solid #d3c9bc!important;border-radius:11px!important;
+  background:#fffaf2!important;min-height:40px;
+  font-size:14px;color:#38383b;
+}
+#tabs.tabs{gap:9px;padding:2px 1px 14px;margin-bottom:2px;scrollbar-width:none}
+#tabs .tab{
+  background:#fffdfa!important;border:2.5px solid #3c3a3b!important;
+  color:#3c3a3b!important;border-radius:18px!important;
+  min-width:96px;min-height:66px;padding:7px 13px!important;
+  font-size:14px;font-weight:800;box-shadow:2px 3px 0 #eadcd0;
+}
+#tabs .tab small{color:#857b74!important;font-size:12px;margin-top:3px}
+#tabs .tab[aria-selected="true"]{
+  background:#ffd67e!important;box-shadow:3px 4px 0 #3c3a3b;
+}
+#tabs .tab.add{min-width:122px;border-style:dashed!important;background:#fffaf2!important}
+#day.day{
+  background:#fffdf9!important;border:3px solid #3c3a3b!important;
+  border-radius:25px!important;padding:18px 15px 20px!important;
+  box-shadow:4px 5px 0 #eee1d3;
+}
+#day .dayhead{display:flex;align-items:center;gap:10px;margin-bottom:15px;padding-bottom:12px;border-bottom:2px dashed #e1d3c2}
+#day .dayhead b{
+  flex:none;display:inline-flex;align-items:center;
+  background:#ffda89;border:2px solid #3c3a3b;
+  border-radius:999px;padding:6px 12px;
+  font:800 13px/1.4 "PingFang TC",sans-serif;
+}
+#day .dayhead input{min-width:0;font-size:18px;font-weight:800;color:#38383b}
+#day .items{list-style:none;position:relative;margin:0;padding:2px 0 0 27px}
+#day .items:before{
+  content:"";position:absolute;left:10px;top:22px;bottom:26px;
+  border-left:3px dashed #b5b1ab;pointer-events:none;
+}
+#day .item{
+  position:relative;display:grid;grid-template-columns:92px minmax(0,1fr);
+  gap:7px 10px;margin:8px 0 17px;padding:14px 12px!important;
+  background:#fff8e9;border:2.5px solid #3c3a3b!important;
+  border-radius:19px;box-shadow:2px 3px 0 #f0e5d8;min-width:0;
+}
+#day .item:nth-child(4n+1){background:#fff0ee}
+#day .item:nth-child(4n+2){background:#ecf7fb}
+#day .item:nth-child(4n+3){background:#f0f7e8}
+#day .item:nth-child(4n+4){background:#fff5dc}
+#day .item:before{
+  content:"";position:absolute;left:-29px;top:22px;
+  width:15px;height:15px;background:#ffab9f;
+  border:2.5px solid #3c3a3b;border-radius:50%;
+  z-index:1;box-shadow:0 0 0 4px #fffdf9;
+}
+#day .item:nth-child(even):before{background:#b4d7b5}
+#day .item input,#day .item textarea{min-width:0;max-width:100%}
+#day .item .time{
+  width:100%!important;min-width:0;padding:5px 4px!important;
+  border:1.5px solid #c3b9ad!important;border-radius:10px;
+  font-size:13px!important;font-weight:800!important;
+  background:#fffefa!important;color:#39383b;
+}
+#day .item .name{font-weight:800;font-size:15px!important;color:#37383b}
+#day .item .pw{min-width:0;gap:5px}
+#day .item .place{min-width:0;font-size:12px}
+#day .item .full{
+  grid-column:1/-1;background:rgba(255,255,255,.58);
+  border:1px dashed #d9c9bd;border-radius:10px;
+  color:#756f6b;padding:8px 10px;min-height:48px;
+}
+#day .item .tools{grid-column:1/-1;justify-content:flex-end;flex-wrap:wrap}
+#day .item .tools .btn{font-size:12px;padding:5px 10px}
+#day .leg{border-radius:12px;background:#fffdfa;margin:0 0 14px}
+.btn,.share-create button,.flight-card-actions button{
+  border-radius:11px;
+}
+.btn{border:1.5px solid #cdbfb0;background:#fff8eb;color:#38383b}
+.btn.main{
+  background:#ffd67e!important;border:2px solid #3c3a3b!important;
+  color:#37363b!important;font-weight:800;
+}
+#oth.day{
+  border:2.5px solid #3c3a3b!important;background:#fffdf9!important;
+  border-radius:24px!important;box-shadow:3px 4px 0 #f1e2d4;
+}
+#oth .dine-card,#oth .wish-card,#oth .expense-card,
+#oth .flight-card,#oth .backup-card,#oth .tax-form,
+#oth .tax-summary,#oth .expense-people-box,#oth .expense-editor,
+#oth .expense-list-section,#oth .backup-editor,#oth .backup-list-section{
+  border:2px solid #3c3a3b!important;border-radius:18px!important;
+  background:#fffdf8!important;box-shadow:2px 3px 0 #efe1d3;
+}
+#oth .dine-card:nth-child(4n+1),#oth .wish-card:nth-child(4n+1),
+#oth .expense-card:nth-child(4n+1){background:#fff0ee!important}
+#oth .dine-card:nth-child(4n+2),#oth .wish-card:nth-child(4n+2),
+#oth .expense-card:nth-child(4n+2){background:#edf6fc!important}
+#oth .dine-card:nth-child(4n+3),#oth .wish-card:nth-child(4n+3),
+#oth .expense-card:nth-child(4n+3){background:#f2f7e9!important}
+#oth input,#oth select,#oth textarea{
+  border-radius:10px;color:#3c3a3b;
+}
+.flight-direction-pill,.dine-category,.expense-person-chip{
+  border:1.5px solid #3c3a3b!important;border-radius:999px!important;
+  background:#ffe0a0!important;color:#3c3a3b!important;
+}
+.flight-route-view{background:#eaf6fc;padding:13px 10px;border-radius:16px}
+.flight-view-head{border-bottom:2px dashed #dacdbf}
+.flight-time-view{border-top:2px dashed #dacdbf;border-bottom:2px dashed #dacdbf}
+#sharePage .share-manager{border:2.5px solid #3c3a3b;border-radius:20px;box-shadow:3px 4px 0 #f1e2d4}
+.foot{padding-top:12px;border-top:2px dashed #d8c6b4}
+@media(max-width:480px){
+  main{padding:10px 12px 60px}
+  .journal-cover{margin-bottom:13px;border-radius:21px}
+  .journal-cover svg{max-height:158px}
+  .journal-cover .journal-stamp{left:10px;top:10px;font-size:10px}
+  #nav .tab{font-size:14px;padding:7px 13px!important;min-height:39px}
+  #trip.title{margin-bottom:9px}
+  #day.day{padding:13px 10px 17px!important}
+  #day .dayhead input{font-size:16px}
+  #day .items{padding-left:23px}
+  #day .items:before{left:7px}
+  #day .item{grid-template-columns:83px minmax(0,1fr);padding:11px 8px!important;gap:6px 6px;margin-bottom:14px}
+  #day .item:before{left:-26px;top:21px}
+  #day .item .name{font-size:14px!important}
+  #day .item .time{font-size:12px!important}
+  #day .item .tools .btn{font-size:12px;padding:5px 8px}
+  #tabs .tab{min-width:88px;min-height:60px;padding:6px 10px!important}
+}
+@media(prefers-reduced-motion:no-preference){
+  #nav .tab,#tabs .tab,.btn{transition:transform .15s ease,box-shadow .15s ease}
+  #nav .tab:active,#tabs .tab:active,.btn:active{transform:translate(1px,2px)}
+}
+/* ===== end pastel journal preview ===== */
 </style>
 </head>
 <body>
 <main class="">
+  <div class="journal-cover" aria-hidden="true">
+    <svg viewBox="0 0 680 210" xmlns="http://www.w3.org/2000/svg" role="img">
+      <rect width="680" height="210" fill="#def0f9"/>
+      <circle cx="562" cy="54" r="28" fill="#ffe087" stroke="#3c3a3b" stroke-width="3.5"/>
+      <path d="M550 53h2m20 0h2" stroke="#3c3a3b" stroke-width="4" stroke-linecap="round"/>
+      <path d="M556 64q7 8 14 0" fill="none" stroke="#3c3a3b" stroke-width="3" stroke-linecap="round"/>
+      <g fill="#fffefa" stroke="#3c3a3b" stroke-width="3.5" stroke-linejoin="round">
+        <path d="M102 65q0-19 20-19 9-26 31-14 18-11 31 7 27-3 28 23q0 13-19 13h-69q-22 0-22-10z"/>
+        <path d="M396 37q-2-12 13-17 8-22 28-10 18-10 28 7 20-1 21 17 0 10-17 10h-54q-19 0-19-7z"/>
+      </g>
+      <path d="M0 166q62-68 152-26t146 2q103-52 185-5t197 0v73H0z" fill="#b5dfba" stroke="#3c3a3b" stroke-width="3.5"/>
+      <path d="M0 166q102-25 212 2t228-5 240 4v43H0z" fill="#99cfe4" stroke="#3c3a3b" stroke-width="3.5"/>
+      <path d="M0 187q80-13 163 3t150 1 146-5 221 6" fill="none" stroke="#fffdfa" stroke-width="4" stroke-linecap="round"/>
+      <path d="M42 197q27-9 50 0m215 2q31-12 56 0m165-2q30-9 50 0" fill="none" stroke="#3c3a3b" stroke-width="3" stroke-linecap="round"/>
+      <path d="M280 162q42-44 91-48 47 3 92 48z" fill="#f9ead0" stroke="#3c3a3b" stroke-width="3.5" stroke-linejoin="round"/>
+      <path d="M314 157q43-26 83-9" fill="none" stroke="#e7c38d" stroke-width="5" stroke-linecap="round"/>
+      <path d="M59 158q17-65 3-91" fill="none" stroke="#665244" stroke-width="8" stroke-linecap="round"/>
+      <path d="M63 73q-33-21-49-6m49 6q-2-32 15-39m-15 39q33-21 48-10m-48 10q-6 23-33 29m33-29q24 19 26 34" fill="none" stroke="#6b9c76" stroke-width="10" stroke-linecap="round"/>
+      <g fill="#ffe49e" stroke="#3c3a3b" stroke-width="3" stroke-linejoin="round">
+        <path d="M538 154l9-21 9 21 22 4-16 16 4 23-19-10-18 10 3-23-16-16z"/>
+      </g>
+      <g stroke="#fffefa" stroke-width="4" stroke-linecap="round">
+        <path d="M215 110l14-6m-3 20l12-5m248-22l17 6"/>
+      </g>
+    </svg>
+    <span class="journal-stamp">🌺 OKINAWA · TRAVEL JOURNAL</span>
+  </div>
+
   <input id="trip" class="title" placeholder="旅行名稱" aria-label="旅行名稱">
   <div id="mapbar" class="mapbar" style=""></div>
   <div id="mapsvg" class="mapsvg" style=""></div>
