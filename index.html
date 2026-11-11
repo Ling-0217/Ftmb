@@ -726,6 +726,68 @@ main{max-width:730px;padding:14px 14px 70px}
   #oth .flight-card{padding:14px!important;gap:13px}
 }
 
+
+/* ===== Day-by-day Morandi palettes: schedule presentation only ===== */
+/* Keep the warm paper UI, but let every day have its own gentle identity. */
+main:has(#tabs .tab[data-tab="0"][aria-selected="true"]){
+  --day-main:#CDAFAA;--day-soft:#F7EEEB;--day-card:#EFE0DB;--day-line:#B99E98;
+}
+main:has(#tabs .tab[data-tab="1"][aria-selected="true"]){
+  --day-main:#D1BFA2;--day-soft:#F8F3E9;--day-card:#EFE4D1;--day-line:#B4A183;
+}
+main:has(#tabs .tab[data-tab="2"][aria-selected="true"]){
+  --day-main:#B2C0AB;--day-soft:#F1F4EC;--day-card:#E7EDE2;--day-line:#95A58F;
+}
+main:has(#tabs .tab[data-tab="3"][aria-selected="true"]){
+  --day-main:#B2C3C9;--day-soft:#F0F4F5;--day-card:#E3ECEF;--day-line:#95A9B1;
+}
+main:has(#tabs .tab[data-tab="4"][aria-selected="true"]){
+  --day-main:#C8B6BD;--day-soft:#F7F0F2;--day-card:#EDE1E6;--day-line:#B29BA5;
+}
+/* The unselected day tabs are readable little color swatches. */
+#tabs .tab[data-tab="0"]{background:#F1E0DB!important;border-color:#C6AAA3!important}
+#tabs .tab[data-tab="1"]{background:#F1E6D4!important;border-color:#C5B08E!important}
+#tabs .tab[data-tab="2"]{background:#E8EEE3!important;border-color:#ADBEA5!important}
+#tabs .tab[data-tab="3"]{background:#E5ECEE!important;border-color:#A5B9C0!important}
+#tabs .tab[data-tab="4"]{background:#F0E6EA!important;border-color:#C1AAB5!important}
+#tabs .tab[data-tab="0"][aria-selected="true"]{background:#CDAFAA!important;border-color:#B99E98!important}
+#tabs .tab[data-tab="1"][aria-selected="true"]{background:#D1BFA2!important;border-color:#B4A183!important}
+#tabs .tab[data-tab="2"][aria-selected="true"]{background:#B2C0AB!important;border-color:#95A58F!important}
+#tabs .tab[data-tab="3"][aria-selected="true"]{background:#B2C3C9!important;border-color:#95A9B1!important}
+#tabs .tab[data-tab="4"][aria-selected="true"]{background:#C8B6BD!important;border-color:#B29BA5!important}
+#day.day{
+  background:var(--day-soft,#FCF8F3)!important;
+  border-color:var(--day-line,#B7A79C)!important;
+}
+#day .dayhead{border-bottom-color:var(--day-line,#DDCFC7)}
+#day .dayhead b{
+  background:var(--day-main,#D9BFB1)!important;
+  border-color:var(--day-line,#887F79)!important;
+}
+#day .items:before{border-left-color:var(--day-line,#C7B6AA)}
+#day .item,
+#day .item:nth-child(4n+1),#day .item:nth-child(4n+2),
+#day .item:nth-child(4n+3),#day .item:nth-child(4n+4){
+  background:var(--day-card,#F3E9DF)!important;
+  border-color:var(--day-line,#B9A99F)!important;
+}
+#day .item:nth-of-type(even){
+  background:color-mix(in srgb,var(--day-card,#F3E9DF) 62%,#fff)!important;
+}
+#day .item:before,#day .item:nth-child(even):before{
+  background:var(--day-main,#D9B4A8);
+  border-color:var(--day-line,#887F79);
+}
+#day .item .time{
+  background:var(--day-soft,#FFFBF6)!important;
+  border-color:var(--day-line,#CBBEB3)!important;
+}
+#day .bar .btn.main{
+  background:var(--day-main,#CDB9A7)!important;
+  border-color:var(--day-line,#887F79)!important;
+}
+/* ===== end day-by-day Morandi palettes ===== */
+
 /* ===== end pastel journal preview ===== */
 </style>
 </head>
