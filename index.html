@@ -789,22 +789,25 @@ main:has(#tabs .tab[data-tab="4"][aria-selected="true"]){
 
 /* ===== end pastel journal preview ===== */
 
-/* Compact place opening-hour information */
-.hours-detail{grid-column:1/-1;min-width:0;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:13px}
-.hours-detail summary{cursor:pointer;font-size:13px;font-weight:650;color:var(--ink);list-style-position:inside}
-.hours-fields{display:grid;gap:9px;margin-top:10px}
-.hours-all{display:flex;align-items:center;gap:7px}
-.hours-all input{width:18px!important;height:18px}
-.hours-time{display:flex;gap:8px;align-items:end;flex-wrap:wrap}
-.hours-time label{flex:1 1 112px;min-width:0;display:grid;gap:4px;font-size:12px;color:var(--sub)}
-.hours-time label input{width:100%;min-width:0;border:1px solid var(--line);border-radius:8px;padding:7px;background:var(--ft)}
-.hours-time span{padding-bottom:7px}
+/* Compact place opening-hour information — responsive to the card's OWN width.
+   Prevent iOS native time/date controls from enlarging their grid tracks. */
+.hours-detail{grid-column:1/-1;width:100%;max-width:100%;min-width:0;container:opening-hours / inline-size;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:13px}
+.hours-detail summary{cursor:pointer;font-size:13px;font-weight:650;color:var(--ink);list-style-position:inside;overflow-wrap:anywhere}
+.hours-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:9px;min-width:0;margin-top:10px}
+.hours-all{display:flex;align-items:center;gap:7px;min-width:0}
+.backup-form-grid .hours-all{display:flex;flex-direction:row;align-items:center}
+.hours-all input{width:18px!important;height:18px;flex:none}
+.hours-time{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:end;min-width:0}
+.hours-time>label{min-width:0;max-width:100%;display:grid;grid-template-columns:minmax(0,1fr);gap:4px;font-size:12px;color:var(--sub)}
+.hours-time input[type="time"]{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;padding:7px;background:var(--ft);font-size:16px}
+.hours-time>span{padding-bottom:8px;white-space:nowrap;color:var(--sub)}
 .hours-label{font-size:13px;color:var(--sub)}
-.hours-off{display:flex;flex-wrap:wrap;gap:6px}
-.hours-off .dchip{width:31px;height:31px}
-.hours-date-entry{display:flex;gap:7px;flex-wrap:wrap}
-.hours-date-entry input{flex:1 1 140px;min-width:0;width:auto;border:1px solid var(--line);border-radius:8px}
-.hours-date-list{display:flex;gap:6px;flex-wrap:wrap}
+.hours-off{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.hours-off .dchip{flex:0 0 31px;width:31px;height:31px}
+.hours-date-entry{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:center;min-width:0}
+.hours-date-entry input[type="date"]{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;padding:7px;background:var(--ft);font-size:16px}
+.hours-date-entry .btn{white-space:nowrap}
+.hours-date-list{display:flex;gap:6px;flex-wrap:wrap;min-width:0}
 .hours-date-chip{display:inline-flex;gap:4px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:2px 4px 2px 10px}
 .hours-date-chip .btn{border:0;background:none;padding:0 6px}
 .hours-outside{grid-column:1/-1;font-size:12px;line-height:1.5}
@@ -812,6 +815,15 @@ main:has(#tabs .tab[data-tab="4"][aria-selected="true"]){
 .backup-hours-status{font-size:13px;margin:7px 0}
 .backup-editor .hours-detail{grid-column:1/-1}
 .ro .hours-fields{display:none}
+/* All three screens (backup form, restaurant card, day itinerary card)
+   share this layout even though their containing cards have different widths. */
+@container opening-hours (max-width:359px){
+  .hours-time{grid-template-columns:minmax(0,1fr);gap:8px}
+  .hours-time>span{display:none}
+  .hours-date-entry{grid-template-columns:minmax(0,1fr);gap:8px}
+  .hours-date-entry .btn{justify-self:start}
+  .hours-off{display:grid;grid-template-columns:repeat(4,31px);gap:8px}
+}
 
 </style>
 </head>
