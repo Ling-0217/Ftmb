@@ -788,6 +788,31 @@ main:has(#tabs .tab[data-tab="4"][aria-selected="true"]){
 /* ===== end day-by-day Morandi palettes ===== */
 
 /* ===== end pastel journal preview ===== */
+
+/* Compact place opening-hour information */
+.hours-detail{grid-column:1/-1;min-width:0;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:13px}
+.hours-detail summary{cursor:pointer;font-size:13px;font-weight:650;color:var(--ink);list-style-position:inside}
+.hours-fields{display:grid;gap:9px;margin-top:10px}
+.hours-all{display:flex;align-items:center;gap:7px}
+.hours-all input{width:18px!important;height:18px}
+.hours-time{display:flex;gap:8px;align-items:end;flex-wrap:wrap}
+.hours-time label{flex:1 1 112px;min-width:0;display:grid;gap:4px;font-size:12px;color:var(--sub)}
+.hours-time label input{width:100%;min-width:0;border:1px solid var(--line);border-radius:8px;padding:7px;background:var(--ft)}
+.hours-time span{padding-bottom:7px}
+.hours-label{font-size:13px;color:var(--sub)}
+.hours-off{display:flex;flex-wrap:wrap;gap:6px}
+.hours-off .dchip{width:31px;height:31px}
+.hours-date-entry{display:flex;gap:7px;flex-wrap:wrap}
+.hours-date-entry input{flex:1 1 140px;min-width:0;width:auto;border:1px solid var(--line);border-radius:8px}
+.hours-date-list{display:flex;gap:6px;flex-wrap:wrap}
+.hours-date-chip{display:inline-flex;gap:4px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:2px 4px 2px 10px}
+.hours-date-chip .btn{border:0;background:none;padding:0 6px}
+.hours-outside{grid-column:1/-1;font-size:12px;line-height:1.5}
+.hours-status{color:var(--sub)}.hours-status.closed{color:var(--danger);font-weight:700}.hours-status.open{color:#48776F}
+.backup-hours-status{font-size:13px;margin:7px 0}
+.backup-editor .hours-detail{grid-column:1/-1}
+.ro .hours-fields{display:none}
+
 </style>
 </head>
 <body>
@@ -936,6 +961,80 @@ function applyRO(){
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const WD=['日','一','二','三','四','五','六'];
+
+/* Shared opening-hours fields for itinerary stops and backup places. */
+const HOURS_DAYS=['日','一','二','三','四','五','六'];
+function hoursDate(dayIndex){
+  if(!S.start||!Number.isInteger(+dayIndex))return '';
+  const d=new Date(S.start+'T12:00:00');if(Number.isNaN(d.getTime()))return '';
+  d.setDate(d.getDate()+(+dayIndex));
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function hoursInfo(o,dayIndex,time){
+  o=o||{};const off=Array.isArray(o.off)?o.off.map(Number):[];
+  const closed=Array.isArray(o.closedDates)?o.closedDates:[];
+  const date=hoursDate(dayIndex);
+  if(date&&closed.includes(date))return {state:'closed',label:'⚠ '+date+' 特殊休館'};
+  if(date&&off.includes(new Date(date+'T12:00:00').getDay()))return {state:'closed',label:'⚠ 當天公休（週'+HOURS_DAYS[new Date(date+'T12:00:00').getDay()]+'）'};
+  if(o.alwaysOpen)return {state:'open',label:'24 小時開放'};
+  if(o.open&&o.close){
+    if(time){
+      const t=time.slice(0,5),a=o.open,b=o.close;
+      const inside=a<=b?(t>=a&&t<b):(t>=a||t<b);
+      return inside?{state:'open',label:'✓ 抵達時間在營業時段內'}:{state:'closed',label:'⚠ 預計 '+t+' 抵達，超出營業時間 '+a+'～'+b};
+    }
+    return {state:'info',label:'營業 '+o.open+'～'+o.close+(date?' · 當天未設定公休':'')};
+  }
+  return {state:'unknown',label:'尚未設定營業時間'};
+}
+function hoursSummary(o){return o.alwaysOpen?'24 小時開放':(o.open&&o.close?'營業 '+o.open+'～'+o.close:'營業時間未設定');}
+function hoursStatusHtml(o,di,time){
+  const h=hoursInfo(o,di,time);
+  return '<span class="hours-status '+h.state+'">'+esc(h.label)+'</span>';
+}
+function hoursFields(o,isDraft){
+  o=o||{};const attr=isDraft?'data-spotdraft="1"':'data-hfield="1"';
+  const field=(name)=>attr+' data-f="'+name+'"';
+  const off=HOURS_DAYS.map((w,j)=>'<label class="dchip"><input type="checkbox" '+field('off')+' data-n="'+j+'"'+((o.off||[]).map(Number).includes(j)?' checked':'')+'>'+w+'</label>').join('');
+  const dates=(o.closedDates||[]).map(x=>'<span class="hours-date-chip">'+esc(x)+' <button type="button" class="btn del" data-hours-remove="'+esc(x)+'">×</button></span>').join('');
+  return '<div class="hours-fields">'+
+    '<label class="hours-all"><input type="checkbox" '+field('alwaysOpen')+(o.alwaysOpen?' checked':'')+'> 全年 24 小時開放</label>'+
+    '<div class="hours-time"><label>開門時間<input type="time" '+field('open')+' value="'+esc(o.open||'')+'"'+(o.alwaysOpen?' disabled':'')+'></label><span>至</span><label>關門時間<input type="time" '+field('close')+' value="'+esc(o.close||'')+'"'+(o.alwaysOpen?' disabled':'')+'></label></div>'+
+    '<div class="hours-label">每週公休日（可複選）</div><div class="hours-off">'+off+'</div>'+
+    '<div class="hours-label">特殊休館日期</div><div class="hours-date-entry"><input type="date" data-hours-date-input aria-label="選擇休館日期"><button type="button" class="btn" data-hours-add>＋ 加入日期</button></div>'+
+    '<div class="hours-date-list">'+(dates||'<span class="sub">未設定特殊休館日期</span>')+'</div>'+
+  '</div>';
+}
+function hoursBlock(o,isDraft,dayIndex,time){
+  const status=hoursStatusHtml(o,dayIndex,time);
+  return '<details class="hours-detail"><summary>🕒 營業資訊 · '+esc(hoursSummary(o))+'</summary>'+
+    (isDraft?'':'<div class="hours-flag" data-hours-flag>'+status+'</div>')+
+    hoursFields(o,isDraft)+'</details>'+
+    (isDraft?'':'<div class="hours-outside" data-hours-outside>'+status+'</div>');
+}
+function updateHoursRow(li,item,dayIndex,time){
+  const status=hoursStatusHtml(item,dayIndex,time),outside=li&&li.querySelector('[data-hours-outside]');
+  if(outside)outside.innerHTML=status;
+  const detail=li&&li.querySelector('.hours-detail summary');
+  if(detail)detail.textContent='🕒 營業資訊 · '+hoursSummary(item);
+  const flag=li&&li.querySelector('[data-hours-flag]');if(flag)flag.innerHTML=status;
+}
+function updateHoursField(obj,t){
+  if(!obj)return;
+  const field=t.dataset.f;
+  if(field==='off'){
+    const n=Number(t.dataset.n),set=new Set((obj.off||[]).map(Number));
+    t.checked?set.add(n):set.delete(n);obj.off=[...set].sort((a,b)=>a-b);
+  }else if(field==='alwaysOpen'){obj.alwaysOpen=t.checked;}
+  else obj[field]=t.value;
+}
+function updateClosedDate(obj,add,date){
+  if(!obj||!/^\d{4}-\d{2}-\d{2}$/.test(date||''))return false;
+  const set=new Set(Array.isArray(obj.closedDates)?obj.closedDates:[]);
+  add?set.add(date):set.delete(date);
+  obj.closedDates=[...set].sort();return true;
+}
+
 function dateOf(i){
   if(!S.start)return '';
   const d=new Date(S.start+'T00:00:00');if(isNaN(d))return '';
@@ -965,6 +1064,7 @@ function render(){
     <input class="name" data-f="name" value="${esc(it.name)}" placeholder="要做什麼？" aria-label="行程">
     <div class="pw"><input class="place" data-f="place" value="${esc(it.place)}" placeholder="地點" aria-label="地點"><a class="btn" target="_blank" rel="noopener" data-map="${i}">地圖</a></div>
     <textarea class="full" data-f="note" placeholder="備註（交通、預約、花費…）" aria-label="備註">${esc(it.note)}</textarea>
+    ${hoursBlock(it,false,S.cur,it.time)}
     <div class="tools"><button class="btn" data-a="up" ${i===0?'disabled':''}>上移</button><button class="btn" data-a="down" ${i===n-1?'disabled':''}>下移</button><button class="btn del" data-a="del">刪除</button></div>
   </li>${i<n-1?legHtml(it,i):''}`).join('')}</ul><div class="total">${totalText(d)}</div>
   <div class="bar"><button class="btn main" data-a="add">＋ 新增行程</button><button class="btn" data-a="sort">依時間排序</button>
@@ -1017,11 +1117,31 @@ $('day').addEventListener('input',e=>{
   const f=e.target.dataset.f;if(!f)return;
   const d=S.days[S.cur];
   if(f==='dayname')d.name=e.target.value;
-  else d.items[+e.target.closest('[data-i]').dataset.i][f]=e.target.value;
+  else {const li=e.target.closest('[data-i]'),item=d.items[+li.dataset.i];if(e.target.dataset.hfield==='1')updateHoursField(item,e.target);else item[f]=e.target.value;if(f==='time'||e.target.dataset.hfield==='1')updateHoursRow(li,item,S.cur,item.time);}
+  
   if(f==='min'){const t=document.querySelector('.total');if(t)t.textContent=totalText(d)}
   save();
 });
+$('day').addEventListener('change',e=>{
+  if(e.target.dataset.hfield!=='1')return;
+  const li=e.target.closest('[data-i]'),item=S.days[S.cur].items[+li.dataset.i];
+  updateHoursField(item,e.target);
+  if(e.target.dataset.f==='alwaysOpen'){
+    li.querySelectorAll('.hours-time input').forEach(input=>input.disabled=e.target.checked||RO);
+  }
+  updateHoursRow(li,item,S.cur,item.time);save();
+});
 $('day').onclick=e=>{
+  const addDate=e.target.closest('[data-hours-add]');
+  const removeDate=e.target.closest('[data-hours-remove]');
+  if(addDate||removeDate){
+    if(RO)return;
+    const li=e.target.closest('[data-i]'),o=S.days[S.cur].items[+li.dataset.i];
+    const date=addDate?li.querySelector('[data-hours-date-input]').value:removeDate.dataset.hoursRemove;
+    if(!updateClosedDate(o,!!addDate,date)){flash('請先選擇休館日期');return}
+    save();render();return;
+  }
+
   const l=e.target.closest('a[data-map],a[data-nav]');
   if(l){const u=linkFor(l);if(u)l.href=u;else{e.preventDefault();flash('請先填寫地點')}return}
   const b=e.target.closest('[data-a]');if(!b)return;
@@ -1159,16 +1279,16 @@ function applyNoticeFilters(){
 let BACKUP_DRAFT=null,BACKUP_EDIT=-1,BACKUP_FILTER='全部';
 const BACKUP_REGIONS=['那霸','南部','中部','北部','其他'];
 function backupSpotEditorHtml(){
-  if(!BACKUP_DRAFT)BACKUP_DRAFT={name:'',region:'中部',addr:'',note:''};
+  if(!BACKUP_DRAFT)BACKUP_DRAFT={name:'',region:'中部',addr:'',note:'',open:'',close:'',off:[],closedDates:[],alwaysOpen:false};
   const o=BACKUP_DRAFT;
-  return '<div class="backup-form-grid"><label class="wide">景點名稱<input data-spotdraft="1" data-f="name" value="'+esc(o.name||'')+'" placeholder="例如：古宇利島"></label><label>地區<select data-spotdraft="1" data-f="region">'+BACKUP_REGIONS.map(x=>'<option'+(x===(o.region||'中部')?' selected':'')+'>'+x+'</option>').join('')+'</select></label><label>地址／地點<input data-spotdraft="1" data-f="addr" value="'+esc(o.addr||'')+'" placeholder="可填地址或景點名稱"></label><label class="wide">備註<textarea data-spotdraft="1" data-f="note" rows="3" placeholder="想去的原因、營業時間、注意事項…">'+esc(o.note||'')+'</textarea></label></div>';
+  return '<div class="backup-form-grid"><label class="wide">景點名稱<input data-spotdraft="1" data-f="name" value="'+esc(o.name||'')+'" placeholder="例如：古宇利島"></label><label>地區<select data-spotdraft="1" data-f="region">'+BACKUP_REGIONS.map(x=>'<option'+(x===(o.region||'中部')?' selected':'')+'>'+x+'</option>').join('')+'</select></label><label>地址／地點<input data-spotdraft="1" data-f="addr" value="'+esc(o.addr||'')+'" placeholder="可填地址或景點名稱"></label><label class="wide">備註<textarea data-spotdraft="1" data-f="note" rows="3" placeholder="想去的原因、注意事項…">'+esc(o.note||'')+'</textarea></label>'+hoursBlock(o,true,S.cur,'')+'</div>';
 }
 function backupSpotCard(o,i){
   const days=S.days.map((d,j)=>'<option value="'+j+'"'+(j===S.cur?' selected':'')+'>第 '+(j+1)+' 天'+(d.name?'｜'+esc(d.name):'')+'</option>').join('');
   const added=S.days.map((d,j)=>({d,j})).find(x=>x.d.items.some(it=>it.backupId===o.id));
   const status=added?'<div class="backup-status">已加入正式行程：第 '+(added.j+1)+' 天</div>':'<div class="backup-status">尚未加入正式行程</div>';
   const map=o.addr?'<a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(o.addr)+'">地圖</a>':'';
-  return '<li class="dine-card backup-card" data-i="'+i+'" data-search="'+esc([o.name,o.region,o.addr,o.note].join(' ').toLowerCase())+'"><div class="dine-card-heading"><strong>'+esc(o.name||'未命名景點')+'</strong><span class="dine-category">'+esc(o.region||'其他')+'</span></div><div class="dine-card-address">'+esc(o.addr||'尚未填寫地址')+'</div>'+(o.note?'<div class="backup-note">'+esc(o.note)+'</div>':'')+status+(RO?'':'<div class="backup-add-row"><select aria-label="選擇加入哪一天" data-spot-day>'+days+'</select><button class="btn main" data-spot-add="'+i+'">加入正式行程</button></div><div class="backup-actions">'+map+'<button class="btn" data-spot-edit="'+i+'">編輯</button><button class="btn del" data-spot-delete="'+i+'">刪除</button></div>')+'</li>';
+  return '<li class="dine-card backup-card" data-i="'+i+'" data-search="'+esc([o.name,o.region,o.addr,o.note].join(' ').toLowerCase())+'"><div class="dine-card-heading"><strong>'+esc(o.name||'未命名景點')+'</strong><span class="dine-category">'+esc(o.region||'其他')+'</span></div><div class="dine-card-address">'+esc(o.addr||'尚未填寫地址')+'</div>'+(o.note?'<div class="backup-note">'+esc(o.note)+'</div>':'')+'<div class="backup-hours-status" data-spot-status>'+hoursStatusHtml(o,S.cur,'')+'</div>'+hoursBlock(o,false,S.cur,'')+status+(RO?'':'<div class="backup-add-row"><select aria-label="選擇加入哪一天" data-spot-day>'+days+'</select><button class="btn main" data-spot-add="'+i+'">加入正式行程</button></div><div class="backup-actions">'+map+'<button class="btn" data-spot-edit="'+i+'">編輯</button><button class="btn del" data-spot-delete="'+i+'">刪除</button></div>')+'</li>';
 }
 function renderOther(){
   let h='';
@@ -1663,7 +1783,7 @@ oth.addEventListener('input',e=>{
   if(t.id==='notice-search'){applyNoticeFilters();return}
   if(t.id==='wish-search'){applyCollectionSearch('wish');return}
   if(t.id==='backup-search'){const q=t.value.trim().toLowerCase();let shown=0;oth.querySelectorAll('.backup-card').forEach(li=>{li.hidden=!!q&&!li.dataset.search.includes(q);if(!li.hidden)shown++});const empty=oth.querySelector('[data-backup-no-results]');if(empty)empty.hidden=shown>0||!q;return}
-  if(t.dataset.spotdraft==='1'){if(BACKUP_DRAFT)BACKUP_DRAFT[t.dataset.f]=t.value;return}
+  if(t.dataset.spotdraft==='1'){updateHoursField(BACKUP_DRAFT,t);return}
   if(t.id==='dine-search'){applyCollectionSearch('dine');return}
   if(t.dataset.edraft==='1'){if(EXP_DRAFT){const f=t.dataset.f;if(f==='split'){const n=+t.dataset.n,z=new Set(EXP_DRAFT.split||[]);t.checked?z.add(n):z.delete(n);EXP_DRAFT.split=[...z]}else EXP_DRAFT[f]=t.value}return}
   if(t.dataset.wdraft==='1'){if(WISH_DRAFT)WISH_DRAFT[t.dataset.f]=t.value;return}
@@ -1690,7 +1810,8 @@ oth.addEventListener('change',e=>{
   if(d.k==='notices'&&['cat','links','videos'].includes(d.f)){render();return}
   if(e.target.id==='wfil'){WF=e.target.value;render();return}
   if(e.target.id==='backup-filter'){BACKUP_FILTER=e.target.value;render();return}
-  if(e.target.dataset.spotdraft==='1'){if(BACKUP_DRAFT)BACKUP_DRAFT[e.target.dataset.f]=e.target.value;return}
+  if(e.target.matches('[data-spot-day]')){const card=e.target.closest('.backup-card');const o=S.backupSpots[+card.dataset.i];const status=card.querySelector('[data-spot-status]');if(status)status.innerHTML=hoursStatusHtml(o,+e.target.value,'');updateHoursRow(card,o,+e.target.value,'');return}
+  if(e.target.dataset.spotdraft==='1'){updateHoursField(BACKUP_DRAFT,e.target);if(e.target.dataset.f==='alwaysOpen')oth.querySelectorAll('.backup-editor .hours-time input').forEach(x=>x.disabled=e.target.checked);return}
   if(e.target.id==='dfil'){DF=e.target.value;render();return}
   if(e.target.id==='dsort'){DS=e.target.value;render();return}
   if(d.img==='expDraft'){addExpenseDraftImgs(e.target.files);return}
@@ -1706,15 +1827,22 @@ oth.addEventListener('change',e=>{
   if(d.pp!==undefined)render();
 });
 oth.onclick=e=>{
+  const addDate=e.target.closest('.backup-editor [data-hours-add]');
+  const removeDate=e.target.closest('.backup-editor [data-hours-remove]');
+  if(addDate||removeDate){
+    const date=addDate?oth.querySelector('.backup-editor [data-hours-date-input]').value:removeDate.dataset.hoursRemove;
+    if(!updateClosedDate(BACKUP_DRAFT,!!addDate,date)){flash('請先選擇休館日期');return}
+    render();return;
+  }
   const spotSave=e.target.closest('[data-spot-save]');
-  if(spotSave){const o=BACKUP_DRAFT||{};if(!(o.name||'').trim()){flash('請先輸入景點名稱');oth.querySelector('[data-spotdraft][data-f="name"]')?.focus();return}const item={id:BACKUP_EDIT>=0?(S.backupSpots[BACKUP_EDIT]?.id||uid()):uid(),name:o.name.trim(),region:o.region||'其他',addr:(o.addr||'').trim(),note:(o.note||'').trim()};if(BACKUP_EDIT>=0)S.backupSpots[BACKUP_EDIT]=Object.assign({},S.backupSpots[BACKUP_EDIT],item);else S.backupSpots.push(item);BACKUP_EDIT=-1;BACKUP_DRAFT=null;save();render();flash('已加入備選景點');return}
+  if(spotSave){const o=BACKUP_DRAFT||{};if(!(o.name||'').trim()){flash('請先輸入景點名稱');oth.querySelector('[data-spotdraft][data-f="name"]')?.focus();return}const item={id:BACKUP_EDIT>=0?(S.backupSpots[BACKUP_EDIT]?.id||uid()):uid(),name:o.name.trim(),region:o.region||'其他',addr:(o.addr||'').trim(),note:(o.note||'').trim(),open:o.open||'',close:o.close||'',off:(o.off||[]).map(Number),closedDates:o.closedDates||[],alwaysOpen:!!o.alwaysOpen};if(BACKUP_EDIT>=0)S.backupSpots[BACKUP_EDIT]=Object.assign({},S.backupSpots[BACKUP_EDIT],item);else S.backupSpots.push(item);BACKUP_EDIT=-1;BACKUP_DRAFT=null;save();render();flash('已加入備選景點');return}
   const spotEdit=e.target.closest('[data-spot-edit]');
   if(spotEdit){BACKUP_EDIT=+spotEdit.dataset.spotEdit;BACKUP_DRAFT=JSON.parse(JSON.stringify(S.backupSpots[BACKUP_EDIT]||{}));render();oth.querySelector('.backup-editor')?.scrollIntoView({behavior:'smooth',block:'start'});return}
   if(e.target.closest('[data-spot-cancel]')){BACKUP_EDIT=-1;BACKUP_DRAFT=null;render();return}
   const spotDelete=e.target.closest('[data-spot-delete]');
   if(spotDelete){const i=+spotDelete.dataset.spotDelete;ask('確定刪除這個備選景點？').then(ok=>{if(ok){S.backupSpots.splice(i,1);save();render()}});return}
   const spotAdd=e.target.closest('[data-spot-add]');
-  if(spotAdd){const i=+spotAdd.dataset.spotAdd,o=S.backupSpots[i];if(!o)return;const card=spotAdd.closest('.backup-card'),dayIndex=+(card?.querySelector('[data-spot-day]')?.value??S.cur);if(S.days.some(d=>d.items.some(it=>it.backupId===o.id))){flash('這個景點已經排入正式行程');return}const day=S.days[dayIndex];if(!day)return;day.items.push({id:uid(),time:'',name:o.name,place:o.addr||o.name,note:o.note||'',backupId:o.id});S.cur=dayIndex;save();V='plan';render();flash('已加入第 '+(dayIndex+1)+' 天行程');return}
+  if(spotAdd){const i=+spotAdd.dataset.spotAdd,o=S.backupSpots[i];if(!o)return;const card=spotAdd.closest('.backup-card'),dayIndex=+(card?.querySelector('[data-spot-day]')?.value??S.cur);if(S.days.some(d=>d.items.some(it=>it.backupId===o.id))){flash('這個景點已經排入正式行程');return}const day=S.days[dayIndex];if(!day)return;day.items.push({id:uid(),time:'',name:o.name,place:o.addr||o.name,note:o.note||'',backupId:o.id,open:o.open||'',close:o.close||'',off:[...(o.off||[])],closedDates:[...(o.closedDates||[])],alwaysOpen:!!o.alwaysOpen});S.cur=dayIndex;save();V='plan';render();flash('已加入第 '+(dayIndex+1)+' 天行程');return}
   const flightEdit=e.target.closest('[data-flight-edit]');
   if(flightEdit){
     const card=flightEdit.closest('.flight-card');
