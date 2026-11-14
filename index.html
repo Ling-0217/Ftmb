@@ -1465,26 +1465,21 @@ function backupSpotEditorHtml(){
 }
 
 function backupSpotReadDetails(o){
-  const knownHours=!!(o.alwaysOpen||o.open||o.close||(o.off||[]).length||(o.closedDates||[]).length);
-  const weekdays=(Array.isArray(o.off)?o.off:[]).map(Number).filter(d=>Number.isInteger(d)&&d>=0&&d<7).sort((a,b)=>a-b).map(d=>'週'+HOURS_DAYS[d]).join('、');
+  // Time and price already appear in the compact card summary.
+  // Expand only for genuinely additional information, without duplicates.
+  const weekdays=(Array.isArray(o.off)?o.off:[]).map(Number)
+    .filter(d=>Number.isInteger(d)&&d>=0&&d<7).sort((a,b)=>a-b)
+    .map(d=>'週'+HOURS_DAYS[d]).join('、');
   const closures=(Array.isArray(o.closedDates)?o.closedDates:[]).join('、');
-  const hasTickets=!!(o.ticketType&&o.ticketType!=='unknown'||o.ticketBooking&&o.ticketBooking!=='unknown'||o.ticketPrice||o.ticketUrl||o.ticketNote||o.ticketBooked);
   const ticketUrl=ticketLink(o.ticketUrl);
   const rows=[];
   if(o.note)rows.push('<div class="backup-note">'+esc(o.note)+'</div>');
-  if(knownHours){
-    rows.push('<div class="backup-detail-line"><strong>營業時間：</strong>'+esc(hoursSummary(o))+'</div>');
-    if(weekdays)rows.push('<div class="backup-detail-line"><strong>每週公休：</strong>'+esc(weekdays)+'</div>');
-    if(closures)rows.push('<div class="backup-detail-line"><strong>特殊休館：</strong>'+esc(closures)+'</div>');
-  }
-  if(hasTickets){
-    rows.push('<div class="backup-detail-line"><strong>門票資訊：</strong>'+esc(ticketSummary(o))+'</div>');
-    if(ticketUrl)rows.push('<div class="backup-detail-line"><a href="'+esc(ticketUrl)+'" target="_blank" rel="noopener noreferrer">開啟官方購票／預約網址</a></div>');
-    if(o.ticketNote)rows.push('<div class="backup-detail-line"><strong>門票備註：</strong>'+esc(o.ticketNote)+'</div>');
-  }
+  if(weekdays)rows.push('<div class="backup-detail-line"><strong>每週公休：</strong>'+esc(weekdays)+'</div>');
+  if(closures)rows.push('<div class="backup-detail-line"><strong>特殊休館：</strong>'+esc(closures)+'</div>');
+  if(ticketUrl)rows.push('<div class="backup-detail-line"><a href="'+esc(ticketUrl)+'" target="_blank" rel="noopener noreferrer">開啟官方購票／預約網址</a></div>');
+  if(o.ticketNote)rows.push('<div class="backup-detail-line"><strong>門票備註：</strong>'+esc(o.ticketNote)+'</div>');
   return rows.length?'<details class="backup-read-details"><summary>查看詳細資料</summary><div class="backup-detail-body">'+rows.join('')+'</div></details>':'';
 }
-
 function backupSpotCard(o,i){
   const days=S.days.map((d,j)=>'<option value="'+j+'"'+(j===S.cur?' selected':'')+'>第 '+(j+1)+' 天'+(d.name?'｜'+esc(d.name):'')+'</option>').join('');
   const added=S.days.map((d,j)=>({d,j})).find(x=>x.d.items.some(it=>it.backupId===o.id));
