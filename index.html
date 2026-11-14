@@ -1188,17 +1188,24 @@ function tripViewHtml(o,i,n){
  const h=hasHours?hoursInfo(o,S.cur,o.time):null;
  const hTag=hasHours?'<span class="trip-view-tag'+(h.state==='closed'?' warn':'')+'">🕒 '+esc(h.state==='closed'?h.label:hoursSummary(o))+'</span>':'';
  const tTag=hasTicket?'<span class="trip-view-tag">🎟 '+esc(ticketSummary(o))+'</span>':'';
- const off=(Array.isArray(o.off)?o.off:[]).map(Number).filter(x=>Number.isInteger(x)&&x>=0&&x<7).map(x=>'週'+HOURS_DAYS[x]).join('、');
+ // The summary chips above already show the hours, admission price and booking status.
+ // Only truly additional information belongs in the expandable section.
+ const off=(Array.isArray(o.off)?o.off:[]).map(Number).filter(x=>Number.isInteger(x)&&x>=0&&x<7).sort((a,b)=>a-b).map(x=>'週'+HOURS_DAYS[x]).join('、');
  const dates=(Array.isArray(o.closedDates)?o.closedDates:[]).join('、');
- const hDetail=hasHours?'<div class="trip-view-detail"><strong>🕒 營業資訊</strong><div>'+esc(h.label)+'</div>'+(off?'<div>每週公休：'+esc(off)+'</div>':'')+(dates?'<div>特殊休館：'+esc(dates)+'</div>':'')+'</div>':'';
- const tDetail=hasTicket?'<div class="trip-view-detail"><strong>🎟 門票資訊</strong>'+ticketReadOnly(o)+'</div>':'';
- const more=(hasHours||hasTicket)?'<details class="trip-view-more"><summary>查看營業・門票詳細資料</summary>'+hDetail+tDetail+'</details>':'';
+ const ticketUrl=ticketLink(o.ticketUrl);
+ const details=[];
+ if(off)details.push('<div class="trip-view-detail"><strong>每週公休：</strong>'+esc(off)+'</div>');
+ if(dates)details.push('<div class="trip-view-detail"><strong>特殊休館：</strong>'+esc(dates)+'</div>');
+ if(ticketUrl)details.push('<div class="trip-view-detail"><a href="'+esc(ticketUrl)+'" target="_blank" rel="noopener noreferrer">開啟官方購票／預約網址</a></div>');
+ if(o.ticketNote)details.push('<div class="trip-view-detail"><strong>門票備註：</strong>'+esc(o.ticketNote)+'</div>');
+ const more=details.length?'<details class="trip-view-more"><summary>查看補充資訊</summary>'+details.join('')+'</details>':'';
  return '<div class="trip-view-head"><span class="trip-view-time">'+esc(tripTimeLabel(o.time))+'</span><strong class="trip-view-title">'+esc(o.name||'未命名行程')+'</strong></div>'+
   (o.place?'<div class="trip-view-place-row"><span class="trip-view-place">'+esc(o.place)+'</span><a class="btn trip-view-map" data-map="'+i+'" href="#" target="_blank" rel="noopener noreferrer">地圖</a></div>':'')+
   (o.note?'<div class="trip-view-note">'+esc(o.note)+'</div>':'')+
   (hTag||tTag?'<div class="trip-view-tags">'+hTag+tTag+'</div>':'')+more+
   '<div class="tools"><button type="button" class="btn" data-a="edit">編輯</button><button type="button" class="btn" data-a="up"'+(i===0?' disabled':'')+'>上移</button><button type="button" class="btn" data-a="down"'+(i===n-1?' disabled':'')+'>下移</button><button type="button" class="btn del" data-a="del">刪除</button></div>';
 }
+
 function applyTripCardModes(){
  const day=S.days[S.cur];if(!day)return;
  const cards=$('day').querySelectorAll('.items > .item');
