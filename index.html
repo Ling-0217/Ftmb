@@ -824,6 +824,21 @@ main:has(#tabs .tab[data-tab="4"][aria-selected="true"]){
   .hours-off{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
 
+
+/* Compact admission/ticket information for itinerary and backup attractions */
+.ticket-detail{grid-column:1/-1;width:100%;max-width:100%;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:13px}
+.ticket-detail>summary{cursor:pointer;font-weight:650;color:var(--ink);list-style-position:inside;overflow-wrap:anywhere}
+.ticket-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:9px;margin-top:10px}
+.ticket-fields label{display:flex;flex-direction:column;align-items:stretch;gap:4px;min-width:0;font-size:13px;color:var(--sub)}
+.ticket-fields input:not([type=checkbox]),.ticket-fields select{width:100%;max-width:100%;min-width:0;border:1px solid var(--line);border-radius:9px;background:var(--ft);color:var(--ink);padding:8px 10px;font-size:16px;box-sizing:border-box}
+.ticket-fields .ticket-prices{display:grid;grid-template-columns:minmax(0,1fr) 105px;gap:8px;min-width:0}
+.ticket-fields .ticket-prices[hidden]{display:none!important}
+.ticket-fields .ticket-booked{display:flex;flex-direction:row;align-items:center;gap:8px;color:var(--ink)}
+.ticket-booked input{flex:none;width:18px!important;height:18px}
+.ticket-inline{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px;color:var(--sub);margin:6px 0}
+.ticket-inline a{color:var(--ink);text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
+@media(max-width:400px){.ticket-fields .ticket-prices{grid-template-columns:minmax(0,1fr) 90px;gap:6px}}
+
 </style>
 </head>
 <body>
@@ -1003,6 +1018,53 @@ function hoursStatusHtml(o,di,time){
   const h=hoursInfo(o,di,time);
   return '<span class="hours-status '+h.state+'">'+esc(h.label)+'</span>';
 }
+
+function ticketSummary(o){
+  o=o||{};
+  let summary='尚未設定';
+  if(o.ticketType==='free')summary='免費入場';
+  else if(o.ticketType==='paid'){
+    const v=o.ticketPrice;
+    summary=(v!==undefined&&v!==null&&String(v).trim()!==''&&Number.isFinite(Number(v))&&Number(v)>=0)
+      ?'門票 '+Number(v).toLocaleString('zh-TW')+' '+(o.ticketCurrency||'JPY')
+      :'需門票 · 未填票價';
+  }
+  if(o.ticketBooking==='required')summary+=' · 須預約';
+  else if(o.ticketBooking==='recommended')summary+=' · 建議預約';
+  if(o.ticketBooked)summary+=' · 已預約／購票';
+  return summary;
+}
+function ticketLink(url){
+  const raw=String(url||'').trim();if(!raw)return '';
+  try{const v=new URL(raw);return /^https?:$/.test(v.protocol)?v.href:''}catch(e){return ''}
+}
+function ticketBlock(o,isDraft){
+  o=o||{};
+  const field=k=>(isDraft?'data-spotdraft="1"':'data-ticketfield="1"')+' data-f="'+k+'"';
+  const opt=(items,current)=>items.map(([val,title])=>'<option value="'+val+'"'+(current===val?' selected':'')+'>'+title+'</option>').join('');
+  const type=o.ticketType||'unknown',booking=o.ticketBooking||'unknown';
+  return '<details class="ticket-detail"><summary>🎟 門票資訊 · '+esc(ticketSummary(o))+'</summary><div class="ticket-fields">'+
+    '<label>入場方式<select '+field('ticketType')+'>'+opt([['unknown','尚未確認'],['free','免費入場'],['paid','需要門票']],type)+'</select></label>'+
+    '<div class="ticket-prices" data-ticket-prices'+(type==='paid'?'':' hidden')+'><label>參考票價（每人）<input type="number" min="0" step="any" inputmode="decimal" '+field('ticketPrice')+' value="'+esc(o.ticketPrice??'')+'" placeholder="例如 1000"></label><label>幣別<select '+field('ticketCurrency')+'>'+opt([['JPY','日圓 JPY'],['TWD','台幣 TWD']],o.ticketCurrency||'JPY')+'</select></label></div>'+
+    '<label>預約方式<select '+field('ticketBooking')+'>'+opt([['unknown','尚未確認'],['none','不需預約'],['recommended','建議預約'],['required','須先預約']],booking)+'</select></label>'+
+    '<label>官方購票／預約網址<input type="url" inputmode="url" '+field('ticketUrl')+' value="'+esc(o.ticketUrl||'')+'" placeholder="https://…"></label>'+
+    '<label class="ticket-booked"><input type="checkbox" '+field('ticketBooked')+(o.ticketBooked?' checked':'')+'> 已預約／購票</label>'+
+    '<label>門票備註<input '+field('ticketNote')+' value="'+esc(o.ticketNote||'')+'" placeholder="例如：現場買票、套票優惠"></label>'+
+    '</div></details>';
+}
+function ticketReadOnly(o){
+  if(!o||(!o.ticketType&&!o.ticketBooking&&!o.ticketPrice&&!o.ticketUrl&&!o.ticketNote&&!o.ticketBooked))return '';
+  const url=ticketLink(o.ticketUrl);
+  return '<div class="ticket-inline"><span>🎟 '+esc(ticketSummary(o))+'</span>'+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">購票／預約連結</a>':'')+(o.ticketNote?'<span>'+esc(o.ticketNote)+'</span>':'')+'</div>';
+}
+function updateTicketField(o,t){if(o&&t)o[t.dataset.f]=t.type==='checkbox'?t.checked:t.value}
+function updateTicketPanel(parent,o){
+  if(!parent)return;
+  const box=parent.querySelector('.ticket-detail');if(!box)return;
+  const summary=box.querySelector('summary');if(summary)summary.textContent='🎟 門票資訊 · '+ticketSummary(o);
+  const prices=box.querySelector('[data-ticket-prices]');if(prices)prices.hidden=o.ticketType!=='paid';
+}
+
 function hoursFields(o,isDraft){
   o=o||{};const attr=isDraft?'data-spotdraft="1"':'data-hfield="1"';
   const field=(name)=>attr+' data-f="'+name+'"';
@@ -1076,6 +1138,7 @@ function render(){
     <div class="pw"><input class="place" data-f="place" value="${esc(it.place)}" placeholder="地點" aria-label="地點"><a class="btn" target="_blank" rel="noopener" data-map="${i}">地圖</a></div>
     <textarea class="full" data-f="note" placeholder="備註（交通、預約、花費…）" aria-label="備註">${esc(it.note)}</textarea>
     ${hoursBlock(it,false,S.cur,it.time)}
+    ${ticketBlock(it,false)}
     <div class="tools"><button class="btn" data-a="up" ${i===0?'disabled':''}>上移</button><button class="btn" data-a="down" ${i===n-1?'disabled':''}>下移</button><button class="btn del" data-a="del">刪除</button></div>
   </li>${i<n-1?legHtml(it,i):''}`).join('')}</ul><div class="total">${totalText(d)}</div>
   <div class="bar"><button class="btn main" data-a="add">＋ 新增行程</button><button class="btn" data-a="sort">依時間排序</button>
@@ -1128,12 +1191,16 @@ $('day').addEventListener('input',e=>{
   const f=e.target.dataset.f;if(!f)return;
   const d=S.days[S.cur];
   if(f==='dayname')d.name=e.target.value;
-  else {const li=e.target.closest('[data-i]'),item=d.items[+li.dataset.i];if(e.target.dataset.hfield==='1')updateHoursField(item,e.target);else item[f]=e.target.value;if(f==='time'||e.target.dataset.hfield==='1')updateHoursRow(li,item,S.cur,item.time);}
+  else {const li=e.target.closest('[data-i]'),item=d.items[+li.dataset.i];if(e.target.dataset.hfield==='1')updateHoursField(item,e.target);else if(e.target.dataset.ticketfield==='1')updateTicketField(item,e.target);else item[f]=e.target.value;if(f==='time'||e.target.dataset.hfield==='1')updateHoursRow(li,item,S.cur,item.time);if(e.target.dataset.ticketfield==='1')updateTicketPanel(li,item);}
   
   if(f==='min'){const t=document.querySelector('.total');if(t)t.textContent=totalText(d)}
   save();
 });
 $('day').addEventListener('change',e=>{
+  if(e.target.dataset.ticketfield==='1'){
+    const li=e.target.closest('[data-i]'),item=S.days[S.cur].items[+li.dataset.i];
+    updateTicketField(item,e.target);updateTicketPanel(li,item);save();return;
+  }
   if(e.target.dataset.hfield!=='1')return;
   const li=e.target.closest('[data-i]'),item=S.days[S.cur].items[+li.dataset.i];
   updateHoursField(item,e.target);
@@ -1290,16 +1357,16 @@ function applyNoticeFilters(){
 let BACKUP_DRAFT=null,BACKUP_EDIT=-1,BACKUP_FILTER='全部';
 const BACKUP_REGIONS=['那霸','南部','中部','北部','其他'];
 function backupSpotEditorHtml(){
-  if(!BACKUP_DRAFT)BACKUP_DRAFT={name:'',region:'中部',addr:'',note:'',open:'',close:'',off:[],closedDates:[],alwaysOpen:false};
+  if(!BACKUP_DRAFT)BACKUP_DRAFT={name:'',region:'中部',addr:'',note:'',open:'',close:'',off:[],closedDates:[],alwaysOpen:false,ticketType:'unknown',ticketPrice:'',ticketCurrency:'JPY',ticketBooking:'unknown',ticketUrl:'',ticketNote:'',ticketBooked:false};
   const o=BACKUP_DRAFT;
-  return '<div class="backup-form-grid"><label class="wide">景點名稱<input data-spotdraft="1" data-f="name" value="'+esc(o.name||'')+'" placeholder="例如：古宇利島"></label><label>地區<select data-spotdraft="1" data-f="region">'+BACKUP_REGIONS.map(x=>'<option'+(x===(o.region||'中部')?' selected':'')+'>'+x+'</option>').join('')+'</select></label><label>地址／地點<input data-spotdraft="1" data-f="addr" value="'+esc(o.addr||'')+'" placeholder="可填地址或景點名稱"></label><label class="wide">備註<textarea data-spotdraft="1" data-f="note" rows="3" placeholder="想去的原因、注意事項…">'+esc(o.note||'')+'</textarea></label>'+hoursBlock(o,true,S.cur,'')+'</div>';
+  return '<div class="backup-form-grid"><label class="wide">景點名稱<input data-spotdraft="1" data-f="name" value="'+esc(o.name||'')+'" placeholder="例如：古宇利島"></label><label>地區<select data-spotdraft="1" data-f="region">'+BACKUP_REGIONS.map(x=>'<option'+(x===(o.region||'中部')?' selected':'')+'>'+x+'</option>').join('')+'</select></label><label>地址／地點<input data-spotdraft="1" data-f="addr" value="'+esc(o.addr||'')+'" placeholder="可填地址或景點名稱"></label><label class="wide">備註<textarea data-spotdraft="1" data-f="note" rows="3" placeholder="想去的原因、注意事項…">'+esc(o.note||'')+'</textarea></label>'+hoursBlock(o,true,S.cur,'')+ticketBlock(o,true)+'</div>';
 }
 function backupSpotCard(o,i){
   const days=S.days.map((d,j)=>'<option value="'+j+'"'+(j===S.cur?' selected':'')+'>第 '+(j+1)+' 天'+(d.name?'｜'+esc(d.name):'')+'</option>').join('');
   const added=S.days.map((d,j)=>({d,j})).find(x=>x.d.items.some(it=>it.backupId===o.id));
   const status=added?'<div class="backup-status">已加入正式行程：第 '+(added.j+1)+' 天</div>':'<div class="backup-status">尚未加入正式行程</div>';
   const map=o.addr?'<a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(o.addr)+'">地圖</a>':'';
-  return '<li class="dine-card backup-card" data-i="'+i+'" data-search="'+esc([o.name,o.region,o.addr,o.note].join(' ').toLowerCase())+'"><div class="dine-card-heading"><strong>'+esc(o.name||'未命名景點')+'</strong><span class="dine-category">'+esc(o.region||'其他')+'</span></div><div class="dine-card-address">'+esc(o.addr||'尚未填寫地址')+'</div>'+(o.note?'<div class="backup-note">'+esc(o.note)+'</div>':'')+'<div class="backup-hours-status" data-spot-status>'+hoursStatusHtml(o,S.cur,'')+'</div>'+hoursBlock(o,false,S.cur,'')+status+(RO?'':'<div class="backup-add-row"><select aria-label="選擇加入哪一天" data-spot-day>'+days+'</select><button class="btn main" data-spot-add="'+i+'">加入正式行程</button></div><div class="backup-actions">'+map+'<button class="btn" data-spot-edit="'+i+'">編輯</button><button class="btn del" data-spot-delete="'+i+'">刪除</button></div>')+'</li>';
+  return '<li class="dine-card backup-card" data-i="'+i+'" data-search="'+esc([o.name,o.region,o.addr,o.note].join(' ').toLowerCase())+'"><div class="dine-card-heading"><strong>'+esc(o.name||'未命名景點')+'</strong><span class="dine-category">'+esc(o.region||'其他')+'</span></div><div class="dine-card-address">'+esc(o.addr||'尚未填寫地址')+'</div>'+(o.note?'<div class="backup-note">'+esc(o.note)+'</div>':'')+'<div class="backup-hours-status" data-spot-status>'+hoursStatusHtml(o,S.cur,'')+'</div>' +hoursBlock(o,false,S.cur,'')+ticketReadOnly(o)+status+(RO?'':'<div class="backup-add-row"><select aria-label="選擇加入哪一天" data-spot-day>'+days+'</select><button class="btn main" data-spot-add="'+i+'">加入正式行程</button></div><div class="backup-actions">'+map+'<button class="btn" data-spot-edit="'+i+'">編輯</button><button class="btn del" data-spot-delete="'+i+'">刪除</button></div>')+'</li>';
 }
 function renderOther(){
   let h='';
@@ -1794,7 +1861,7 @@ oth.addEventListener('input',e=>{
   if(t.id==='notice-search'){applyNoticeFilters();return}
   if(t.id==='wish-search'){applyCollectionSearch('wish');return}
   if(t.id==='backup-search'){const q=t.value.trim().toLowerCase();let shown=0;oth.querySelectorAll('.backup-card').forEach(li=>{li.hidden=!!q&&!li.dataset.search.includes(q);if(!li.hidden)shown++});const empty=oth.querySelector('[data-backup-no-results]');if(empty)empty.hidden=shown>0||!q;return}
-  if(t.dataset.spotdraft==='1'){updateHoursField(BACKUP_DRAFT,t);return}
+  if(t.dataset.spotdraft==='1'){if(t.dataset.f?.startsWith('ticket')){updateTicketField(BACKUP_DRAFT,t);updateTicketPanel(t.closest('.backup-editor'),BACKUP_DRAFT)}else updateHoursField(BACKUP_DRAFT,t);return}
   if(t.id==='dine-search'){applyCollectionSearch('dine');return}
   if(t.dataset.edraft==='1'){if(EXP_DRAFT){const f=t.dataset.f;if(f==='split'){const n=+t.dataset.n,z=new Set(EXP_DRAFT.split||[]);t.checked?z.add(n):z.delete(n);EXP_DRAFT.split=[...z]}else EXP_DRAFT[f]=t.value}return}
   if(t.dataset.wdraft==='1'){if(WISH_DRAFT)WISH_DRAFT[t.dataset.f]=t.value;return}
@@ -1822,7 +1889,7 @@ oth.addEventListener('change',e=>{
   if(e.target.id==='wfil'){WF=e.target.value;render();return}
   if(e.target.id==='backup-filter'){BACKUP_FILTER=e.target.value;render();return}
   if(e.target.matches('[data-spot-day]')){const card=e.target.closest('.backup-card');const o=S.backupSpots[+card.dataset.i];const status=card.querySelector('[data-spot-status]');if(status)status.innerHTML=hoursStatusHtml(o,+e.target.value,'');updateHoursRow(card,o,+e.target.value,'');return}
-  if(e.target.dataset.spotdraft==='1'){updateHoursField(BACKUP_DRAFT,e.target);if(e.target.dataset.f==='alwaysOpen')oth.querySelectorAll('.backup-editor .hours-time input').forEach(x=>x.disabled=e.target.checked);return}
+  if(e.target.dataset.spotdraft==='1'){if(e.target.dataset.f?.startsWith('ticket')){updateTicketField(BACKUP_DRAFT,e.target);updateTicketPanel(e.target.closest('.backup-editor'),BACKUP_DRAFT)}else updateHoursField(BACKUP_DRAFT,e.target);if(e.target.dataset.f==='alwaysOpen')oth.querySelectorAll('.backup-editor .hours-time input').forEach(x=>x.disabled=e.target.checked);return}
   if(e.target.id==='dfil'){DF=e.target.value;render();return}
   if(e.target.id==='dsort'){DS=e.target.value;render();return}
   if(d.img==='expDraft'){addExpenseDraftImgs(e.target.files);return}
@@ -1846,14 +1913,14 @@ oth.onclick=e=>{
     render();return;
   }
   const spotSave=e.target.closest('[data-spot-save]');
-  if(spotSave){const o=BACKUP_DRAFT||{};if(!(o.name||'').trim()){flash('請先輸入景點名稱');oth.querySelector('[data-spotdraft][data-f="name"]')?.focus();return}const item={id:BACKUP_EDIT>=0?(S.backupSpots[BACKUP_EDIT]?.id||uid()):uid(),name:o.name.trim(),region:o.region||'其他',addr:(o.addr||'').trim(),note:(o.note||'').trim(),open:o.open||'',close:o.close||'',off:(o.off||[]).map(Number),closedDates:o.closedDates||[],alwaysOpen:!!o.alwaysOpen};if(BACKUP_EDIT>=0)S.backupSpots[BACKUP_EDIT]=Object.assign({},S.backupSpots[BACKUP_EDIT],item);else S.backupSpots.push(item);BACKUP_EDIT=-1;BACKUP_DRAFT=null;save();render();flash('已加入備選景點');return}
+  if(spotSave){const o=BACKUP_DRAFT||{};if(!(o.name||'').trim()){flash('請先輸入景點名稱');oth.querySelector('[data-spotdraft][data-f="name"]')?.focus();return}const item={id:BACKUP_EDIT>=0?(S.backupSpots[BACKUP_EDIT]?.id||uid()):uid(),name:o.name.trim(),region:o.region||'其他',addr:(o.addr||'').trim(),note:(o.note||'').trim(),open:o.open||'',close:o.close||'',off:(o.off||[]).map(Number),closedDates:o.closedDates||[],alwaysOpen:!!o.alwaysOpen,ticketType:o.ticketType||'unknown',ticketPrice:o.ticketPrice??'',ticketCurrency:o.ticketCurrency||'JPY',ticketBooking:o.ticketBooking||'unknown',ticketUrl:o.ticketUrl||'',ticketNote:o.ticketNote||'',ticketBooked:!!o.ticketBooked};if(BACKUP_EDIT>=0)S.backupSpots[BACKUP_EDIT]=Object.assign({},S.backupSpots[BACKUP_EDIT],item);else S.backupSpots.push(item);BACKUP_EDIT=-1;BACKUP_DRAFT=null;save();render();flash('已加入備選景點');return}
   const spotEdit=e.target.closest('[data-spot-edit]');
   if(spotEdit){BACKUP_EDIT=+spotEdit.dataset.spotEdit;BACKUP_DRAFT=JSON.parse(JSON.stringify(S.backupSpots[BACKUP_EDIT]||{}));render();oth.querySelector('.backup-editor')?.scrollIntoView({behavior:'smooth',block:'start'});return}
   if(e.target.closest('[data-spot-cancel]')){BACKUP_EDIT=-1;BACKUP_DRAFT=null;render();return}
   const spotDelete=e.target.closest('[data-spot-delete]');
   if(spotDelete){const i=+spotDelete.dataset.spotDelete;ask('確定刪除這個備選景點？').then(ok=>{if(ok){S.backupSpots.splice(i,1);save();render()}});return}
   const spotAdd=e.target.closest('[data-spot-add]');
-  if(spotAdd){const i=+spotAdd.dataset.spotAdd,o=S.backupSpots[i];if(!o)return;const card=spotAdd.closest('.backup-card'),dayIndex=+(card?.querySelector('[data-spot-day]')?.value??S.cur);if(S.days.some(d=>d.items.some(it=>it.backupId===o.id))){flash('這個景點已經排入正式行程');return}const day=S.days[dayIndex];if(!day)return;day.items.push({id:uid(),time:'',name:o.name,place:o.addr||o.name,note:o.note||'',backupId:o.id,open:o.open||'',close:o.close||'',off:[...(o.off||[])],closedDates:[...(o.closedDates||[])],alwaysOpen:!!o.alwaysOpen});S.cur=dayIndex;save();V='plan';render();flash('已加入第 '+(dayIndex+1)+' 天行程');return}
+  if(spotAdd){const i=+spotAdd.dataset.spotAdd,o=S.backupSpots[i];if(!o)return;const card=spotAdd.closest('.backup-card'),dayIndex=+(card?.querySelector('[data-spot-day]')?.value??S.cur);if(S.days.some(d=>d.items.some(it=>it.backupId===o.id))){flash('這個景點已經排入正式行程');return}const day=S.days[dayIndex];if(!day)return;day.items.push({id:uid(),time:'',name:o.name,place:o.addr||o.name,note:o.note||'',backupId:o.id,open:o.open||'',close:o.close||'',off:[...(o.off||[])],closedDates:[...(o.closedDates||[])],alwaysOpen:!!o.alwaysOpen,ticketType:o.ticketType||'unknown',ticketPrice:o.ticketPrice??'',ticketCurrency:o.ticketCurrency||'JPY',ticketBooking:o.ticketBooking||'unknown',ticketUrl:o.ticketUrl||'',ticketNote:o.ticketNote||'',ticketBooked:!!o.ticketBooked});S.cur=dayIndex;save();V='plan';render();flash('已加入第 '+(dayIndex+1)+' 天行程');return}
   const flightEdit=e.target.closest('[data-flight-edit]');
   if(flightEdit){
     const card=flightEdit.closest('.flight-card');
