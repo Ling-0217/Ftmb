@@ -934,6 +934,7 @@ let S=blank(),RO=true;
 const okS=p=>p&&Array.isArray(p.days)&&p.days.length;
 try{const p=JSON.parse(document.getElementById('data').textContent||'null');if(okS(p))S=p}catch(e){}
 let SHARE_TOKEN='',SHARE_ROLE='',EMAIL_ROLE='',shareTimer=0,sharePoll=0,shareDirty=false,pendingLocal=null,shareUpdated='';
+let SHARE_WAS_EXPLICIT=false; // A user-opened ?share= link always takes precedence over normal account mode.
 const save=()=>{if(RO)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){flash('瀏覽器儲存空間不足，請減少圖片')}
   if(LOCAL_TEST){cloudStatus('測試模式：修改只保存在這個瀏覽器，不會同步雲端。');return}
   if(SHARE_TOKEN&&sb&&['owner','editor'].includes(SHARE_ROLE)){shareDirty=true;clearTimeout(shareTimer);shareTimer=setTimeout(cloudShareSaveNow,650)}
@@ -970,11 +971,34 @@ async function renderShareManager(){
   const rows=Array.isArray(data)?data:[];
   box.querySelector('[data-share-list]').innerHTML=rows.map(x=>'<div class="share-row"><div><b>'+esc(x.label||'未命名分享')+'</b><small>'+({editor:'共同編輯',voter:'願望登記',viewer:'唯讀'}[x.role]||x.role)+' · '+(x.revoked_at?'已撤銷':'使用中')+'</small></div><div class="share-row-actions">'+(!x.revoked_at?'<button class="btn del" data-share-revoke="'+esc(x.id)+'">撤銷</button>':'')+'</div></div>').join('')||'<p class="sub">目前尚未建立給朋友的分享連結。</p>';
 }
-async function loadShareMode(){
+async function loadShareMode(authSession=null){
   const params=new URLSearchParams(location.search);let token=params.get('share')||'';
-  if(token){SHARE_TOKEN=token;try{localStorage.setItem('trip-share-token',token)}catch(e){}history.replaceState({},'',location.pathname+location.hash);}
-  else{try{SHARE_TOKEN=localStorage.getItem('trip-share-token')||''}catch(e){}}
-  if(!SHARE_TOKEN)return false;
+  if(token){
+    SHARE_WAS_EXPLICIT=true;
+    SHARE_TOKEN=token;
+    try{localStorage.setItem('trip-share-token',token)}catch(e){}
+    history.replaceState({},'',location.pathname+location.hash);
+  }else{
+    try{token=localStorage.getItem('trip-share-token')||''}catch(e){}
+    // A remembered share link is not a login role. After a genuine owner/editor
+    // email login, prefer the verified account on the normal site URL.
+    if(token&&!SHARE_WAS_EXPLICIT&&authSession?.user?.email){
+      try{
+        const {data:member,error}=await sb.from('trip_members')
+          .select('role').ilike('email',authSession.user.email.toLowerCase()).maybeSingle();
+        if(!error&&member&&['owner','editor'].includes(member.role)){
+          token='';
+          try{localStorage.removeItem('trip-share-token')}catch(e){}
+        }
+      }catch(e){console.warn('Unable to check account role before restoring saved share',e)}
+    }
+    SHARE_TOKEN=token;
+  }
+  if(!SHARE_TOKEN){
+    SHARE_ROLE='';shareDirty=false;
+    if(sharePoll){clearInterval(sharePoll);sharePoll=0}
+    return false;
+  }
   const {data,error}=await sb.rpc('trip_share_get',{p_token:SHARE_TOKEN});if(error)throw error;
   SHARE_ROLE=data.role;shareUpdated=data.updated_at||'';S=data.data;RO=!['owner','editor'].includes(SHARE_ROLE);
   try{const raw=localStorage.getItem(KEY);if(raw){const local=JSON.parse(raw);if(okS(local)&&JSON.stringify(local)!==JSON.stringify(S)&&SHARE_ROLE==='owner')pendingLocal=local;}}catch(e){}
@@ -2232,9 +2256,25 @@ document.getElementById('cloudLogin').addEventListener('click',async()=>{
       await cloudApplySession(null);
     }else{
       const {data:{session}}=await sb.auth.getSession();
-      const shared=await loadShareMode();
+      const shared=await loadShareMode(session);
       if(!shared)await cloudApplySession(session);
-      if(!cloudBooted){cloudBooted=true;sb.auth.onAuthStateChange((_event,session)=>{if(!SHARE_TOKEN)setTimeout(()=>cloudApplySession(session),0)})}
+      if(!cloudBooted){
+         cloudBooted=true;
+         sb.auth.onAuthStateChange((event,session)=>{
+           // Email link can complete after the first getSession. A stale saved
+           // voter/viewer link must not mask a newly authenticated owner.
+           setTimeout(async()=>{
+             if(SHARE_TOKEN&&!SHARE_WAS_EXPLICIT&&session?.user?.email&&event==='SIGNED_IN'){
+               try{
+                 const shared=await loadShareMode(session);
+                 if(!shared)await cloudApplySession(session);
+               }catch(e){console.error('Login/share reconciliation failed',e);cloudStatus('登入後切換權限失敗：'+(e.message||'請重新整理'))}
+             }else if(!SHARE_TOKEN){
+               await cloudApplySession(session);
+             }
+           },0);
+         });
+       }
     }
   }catch(e){
     console.error('Supabase boot failed',e);
