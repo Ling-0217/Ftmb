@@ -1487,7 +1487,7 @@ function backupSpotReadDetails(o){
 
 function backupSpotCard(o,i){
   const days=S.days.map((d,j)=>'<option value="'+j+'"'+(j===S.cur?' selected':'')+'>第 '+(j+1)+' 天'+(d.name?'｜'+esc(d.name):'')+'</option>').join('');
-  const added=S.days.map((d,j)=>({d,j})).find(x=>d.items.some(it=>it.backupId===o.id));
+  const added=S.days.map((d,j)=>({d,j})).find(x=>x.d.items.some(it=>it.backupId===o.id));
   const status=added?'<div class="backup-status">已加入正式行程：第 '+(added.j+1)+' 天</div>':'<div class="backup-status">尚未加入正式行程</div>';
   const map=o.addr?'<a class="btn" target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(o.addr)+'">地圖</a>':'';
   const ticketSet=!!(o.ticketType&&o.ticketType!=='unknown'||o.ticketBooking&&o.ticketBooking!=='unknown'||o.ticketPrice||o.ticketUrl||o.ticketNote||o.ticketBooked);
