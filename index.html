@@ -839,6 +839,28 @@ main:has(#tabs .tab[data-tab="4"][aria-selected="true"]){
 .ticket-inline a{color:var(--ink);text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
 @media(max-width:400px){.ticket-fields .ticket-prices{grid-template-columns:minmax(0,1fr) 90px;gap:6px}}
 
+
+/* Readable itinerary cards, switch to the existing inputs only when editing. */
+#day .item.trip-view{grid-template-columns:minmax(0,1fr)!important;gap:9px!important;min-width:0}
+#day .trip-view .trip-view-head{display:flex;align-items:flex-start;flex-wrap:wrap;gap:8px 10px;min-width:0}
+#day .trip-view .trip-view-time{flex:none;display:inline-flex;justify-content:center;min-width:82px;max-width:100%;padding:7px 10px;border:1.5px solid var(--day-line,#CAB4A4);background:var(--day-soft,#FCF8F3);border-radius:10px;color:var(--ink);font-size:13px;font-weight:750;line-height:1.45}
+#day .trip-view .trip-view-title{flex:1 1 145px;min-width:0;font-size:16px;font-weight:800;overflow-wrap:anywhere;line-height:1.5}
+#day .trip-view .trip-view-place-row{display:flex;align-items:center;justify-content:space-between;gap:9px;min-width:0}
+#day .trip-view .trip-view-place{flex:1;min-width:0;font-size:13px;color:var(--sub);overflow-wrap:anywhere}
+#day .trip-view .trip-view-map{flex:none;font-size:12px;white-space:nowrap;text-decoration:none;padding:5px 10px}
+#day .trip-view .trip-view-note{white-space:pre-wrap;overflow-wrap:anywhere;background:rgba(255,255,255,.55);border:1px solid rgba(170,152,139,.45);border-radius:10px;color:var(--ink);font-size:13px;line-height:1.65;padding:10px 11px}
+#day .trip-view .trip-view-tags{display:flex;flex-wrap:wrap;gap:6px}
+#day .trip-view .trip-view-tag{display:inline-flex;max-width:100%;align-items:center;padding:4px 10px;background:rgba(255,255,255,.55);border:1px solid var(--day-line,#D8C7BD);border-radius:999px;font-size:12px;color:var(--ink);line-height:1.5;overflow-wrap:anywhere}
+#day .trip-view .trip-view-tag.warn{color:var(--danger);border-color:var(--danger)}
+#day .trip-view .trip-view-more{border-top:1px solid var(--day-line,#D8C7BD);padding-top:7px;color:var(--sub);font-size:13px;min-width:0}
+#day .trip-view .trip-view-more summary{cursor:pointer;color:var(--ink);font-size:13px;font-weight:650}
+#day .trip-view .trip-view-detail{margin-top:8px;line-height:1.6;overflow-wrap:anywhere}
+#day .trip-view .trip-view-detail strong{color:var(--ink)}
+#day .trip-view .trip-view-detail .ticket-inline{display:block;margin:4px 0}
+#day .trip-view .tools{grid-column:1/-1;justify-content:flex-end;gap:6px;padding-top:5px}
+#day .trip-edit .tools .btn.main{background:var(--day-main,#CDB9A7)!important;border-color:var(--day-line,#C3A99A)!important}
+@media(max-width:480px){#day .item.trip-view{padding:12px 11px!important}#day .trip-view .trip-view-head{gap:7px 9px}#day .trip-view .trip-view-time{font-size:12px;min-width:78px;padding:6px 8px}#day .trip-view .trip-view-title{font-size:15px;flex-basis:125px}#day .trip-view .tools .btn{font-size:12px;padding:5px 8px}}
+
 </style>
 </head>
 <body>
@@ -1115,6 +1137,48 @@ function dateOf(i){
   return (d.getMonth()+1)+'/'+d.getDate()+'（'+WD[d.getDay()]+'）';
 }
 function flash(t){const m=$('msg');m.textContent=t;setTimeout(()=>m.textContent='',2000)}
+
+/* Only the currently edited stop gets the original input controls. */
+let DAY_EDIT=null;
+function tripTimeLabel(value){
+ const m=/^(\d{2}):(\d{2})$/.exec(String(value||''));
+ if(!m)return value||'時間未定';
+ return (+m[1]<12?'上午':'下午')+(+m[1]%12||12)+':'+m[2];
+}
+function tripHasHours(o){return !!(o.alwaysOpen||o.open||o.close||(o.off||[]).length||(o.closedDates||[]).length)}
+function tripHasTicket(o){return !!(o.ticketType&&o.ticketType!=='unknown'||o.ticketBooking&&o.ticketBooking!=='unknown'||o.ticketPrice||o.ticketUrl||o.ticketNote||o.ticketBooked)}
+function tripViewHtml(o,i,n){
+ const hasHours=tripHasHours(o),hasTicket=tripHasTicket(o);
+ const h=hasHours?hoursInfo(o,S.cur,o.time):null;
+ const hTag=hasHours?'<span class="trip-view-tag'+(h.state==='closed'?' warn':'')+'">🕒 '+esc(h.state==='closed'?h.label:hoursSummary(o))+'</span>':'';
+ const tTag=hasTicket?'<span class="trip-view-tag">🎟 '+esc(ticketSummary(o))+'</span>':'';
+ const off=(Array.isArray(o.off)?o.off:[]).map(Number).filter(x=>Number.isInteger(x)&&x>=0&&x<7).map(x=>'週'+HOURS_DAYS[x]).join('、');
+ const dates=(Array.isArray(o.closedDates)?o.closedDates:[]).join('、');
+ const hDetail=hasHours?'<div class="trip-view-detail"><strong>🕒 營業資訊</strong><div>'+esc(h.label)+'</div>'+(off?'<div>每週公休：'+esc(off)+'</div>':'')+(dates?'<div>特殊休館：'+esc(dates)+'</div>':'')+'</div>':'';
+ const tDetail=hasTicket?'<div class="trip-view-detail"><strong>🎟 門票資訊</strong>'+ticketReadOnly(o)+'</div>':'';
+ const more=(hasHours||hasTicket)?'<details class="trip-view-more"><summary>查看營業・門票詳細資料</summary>'+hDetail+tDetail+'</details>':'';
+ return '<div class="trip-view-head"><span class="trip-view-time">'+esc(tripTimeLabel(o.time))+'</span><strong class="trip-view-title">'+esc(o.name||'未命名行程')+'</strong></div>'+
+  (o.place?'<div class="trip-view-place-row"><span class="trip-view-place">'+esc(o.place)+'</span><a class="btn trip-view-map" data-map="'+i+'" href="#" target="_blank" rel="noopener noreferrer">地圖</a></div>':'')+
+  (o.note?'<div class="trip-view-note">'+esc(o.note)+'</div>':'')+
+  (hTag||tTag?'<div class="trip-view-tags">'+hTag+tTag+'</div>':'')+more+
+  '<div class="tools"><button type="button" class="btn" data-a="edit">編輯</button><button type="button" class="btn" data-a="up"'+(i===0?' disabled':'')+'>上移</button><button type="button" class="btn" data-a="down"'+(i===n-1?' disabled':'')+'>下移</button><button type="button" class="btn del" data-a="del">刪除</button></div>';
+}
+function applyTripCardModes(){
+ const day=S.days[S.cur];if(!day)return;
+ const cards=$('day').querySelectorAll('.items > .item');
+ cards.forEach((li)=>{
+  const i=Number(li.dataset.i),it=day.items[i];if(!it)return;
+  if(!RO&&DAY_EDIT&&DAY_EDIT.day===S.cur&&DAY_EDIT.index===i){
+   li.classList.add('trip-edit');
+   const tools=li.querySelector('.tools');
+   if(tools)tools.insertAdjacentHTML('afterbegin','<button type="button" class="btn main" data-a="doneedit">完成編輯</button>');
+  }else{
+   li.classList.add('trip-view');
+   li.innerHTML=tripViewHtml(it,i,day.items.length);
+  }
+ });
+}
+
 function render(){
   if(voterRestricted()&&PRIVATE_VOTER_SECTIONS.has(V))V='plan';
   if(V==='share'&&(!canManageShares()||LOCAL_TEST))V='plan';
@@ -1143,7 +1207,7 @@ function render(){
   </li>${i<n-1?legHtml(it,i):''}`).join('')}</ul><div class="total">${totalText(d)}</div>
   <div class="bar"><button class="btn main" data-a="add">＋ 新增行程</button><button class="btn" data-a="sort">依時間排序</button>
   <button class="btn" data-a="dup">複製這天</button><button class="btn danger" data-a="delday" ${S.days.length<2?'disabled':''}>刪除這天</button></div>`;
-  applyRO();
+  applyTripCardModes();applyRO();
 }
 const MODES={walking:'🚶 步行',transit:'🚇 大眾運輸',driving:'🚗 開車'};
 const MN={walking:'步行',transit:'大眾運輸',driving:'開車'};
@@ -1184,7 +1248,7 @@ $('tabs').onclick=e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.add){S.days.push({name:'',items:[]});S.cur=S.days.length-1}
   else S.cur=+b.dataset.tab;
-  save();render();
+  DAY_EDIT=null;save();render();
   const t=document.querySelector('.tab[aria-selected="true"]');t&&t.scrollIntoView({inline:'center',block:'nearest'});
 };
 $('day').addEventListener('input',e=>{
@@ -1224,15 +1288,17 @@ $('day').onclick=e=>{
   if(l){const u=linkFor(l);if(u)l.href=u;else{e.preventDefault();flash('請先填寫地點')}return}
   const b=e.target.closest('[data-a]');if(!b)return;
   const d=S.days[S.cur],a=b.dataset.a,li=b.closest('[data-i]'),i=li?+li.dataset.i:-1;
+  if(a==='edit'){if(RO)return;DAY_EDIT={day:S.cur,index:i};render();$('day').querySelector('.trip-edit .name')?.focus();return}
+  if(a==='doneedit'){DAY_EDIT=null;save();render();return}
   if(a==='est'){estimate([i]);return}
   if(a==='estall'){estimate(d.items.map((_,k)=>k));return}
-  if(a==='add')d.items.push({id:uid(),time:'',name:'',place:'',note:''});
-  if(a==='del')d.items.splice(i,1);
-  if(a==='up'&&i>0)[d.items[i-1],d.items[i]]=[d.items[i],d.items[i-1]];
-  if(a==='down'&&i<d.items.length-1)[d.items[i+1],d.items[i]]=[d.items[i],d.items[i+1]];
-  if(a==='sort')d.items.sort((x,y)=>(x.time||'99:99').localeCompare(y.time||'99:99'));
-  if(a==='dup'){S.days.splice(S.cur+1,0,JSON.parse(JSON.stringify(d)));S.cur++}
-  if(a==='delday'){ask('確定刪除第 '+(S.cur+1)+' 天的所有行程？').then(ok=>{if(ok){S.days.splice(S.cur,1);S.cur=Math.max(0,S.cur-1);save();render()}});return}
+  if(a==='add'){d.items.push({id:uid(),time:'',name:'',place:'',note:''});DAY_EDIT={day:S.cur,index:d.items.length-1}}
+  if(a==='del'){d.items.splice(i,1);DAY_EDIT=null}
+  if(a==='up'&&i>0){[d.items[i-1],d.items[i]]=[d.items[i],d.items[i-1]];DAY_EDIT=null}
+  if(a==='down'&&i<d.items.length-1){[d.items[i+1],d.items[i]]=[d.items[i],d.items[i+1]];DAY_EDIT=null}
+  if(a==='sort'){d.items.sort((x,y)=>(x.time||'99:99').localeCompare(y.time||'99:99'));DAY_EDIT=null}
+  if(a==='dup'){S.days.splice(S.cur+1,0,JSON.parse(JSON.stringify(d)));S.cur++;DAY_EDIT=null}
+  if(a==='delday'){ask('確定刪除第 '+(S.cur+1)+' 天的所有行程？').then(ok=>{if(ok){S.days.splice(S.cur,1);S.cur=Math.max(0,S.cur-1);DAY_EDIT=null;save();render()}});return}
   save();render();
   if(a==='add'){const l=document.querySelectorAll('.item .name');l[l.length-1]?.focus()}
 };
