@@ -1125,7 +1125,7 @@ async function pollSharedState(){
     if(data.updated_at&&data.updated_at!==shareUpdated&&!shareDirty){if(okS(data.data)){S=data.data;shareUpdated=data.updated_at;if(SHARE_ROLE!=='voter')recoverySave(false);render();cloudStatus('已取得最新共同資料 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));}}
   }catch(e){cloudStatus('同步連線中斷：'+(e.message||'請檢查分享連結'))}
 }
-function shareUrl(token){return 'https://okinawa-itinerary-two.vercel.app'+location.pathname+'?share='+encodeURIComponent(token)}
+function shareUrl(token){return location.origin+location.pathname+'?share='+encodeURIComponent(token)}
 function canManageShares(){
   return !!((SHARE_TOKEN&&SHARE_ROLE==='owner')||(!SHARE_TOKEN&&cloudSession&&EMAIL_ROLE==='owner'));
 }
