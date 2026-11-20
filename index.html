@@ -67,6 +67,10 @@ input:disabled,textarea:disabled,select:disabled{opacity:1;color:inherit;-webkit
 .row select{width:auto;max-width:7em;border-color:var(--line);background:var(--card)}
 .grp{margin-top:12px}.gh{display:flex;gap:8px;align-items:center}.gh span{color:var(--sub);flex:1}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.chip{display:inline-flex;gap:2px;align-items:center;border:1px solid var(--dc);border-radius:99px;padding:2px 4px 2px 10px;font-size:14px;background:var(--card)}.chip .btn{padding:0 6px;border:0;background:transparent}
+.chips .chip{gap:6px;padding-right:10px}
+.chips .chip .btn.del{border:1px solid var(--danger);border-radius:99px;background:var(--card);padding:2px 9px;font-size:13px;min-height:30px}
+.ppl [data-manage-packcats]{margin-left:auto}
+.ppl [data-manage-packcats][aria-pressed="true"]{background:var(--ft);border-color:var(--danger)}
 .pp{display:inline-flex;gap:2px;align-items:center}.pp .btn{padding:2px 8px}
 .expense-summary{border:2px solid var(--dc);border-radius:14px;padding:14px 16px;margin:0 0 18px;background:var(--card)}
 .expense-summary .total{margin:0;color:var(--ink);font-weight:400}
@@ -2032,6 +2036,7 @@ function packRow(o,i){
   const sel=`<select ${a} data-f="cat" aria-label="分類">${[...C,''].map(c=>`<option value="${esc(c)}"${(c===''?!C.includes(o.cat):o.cat===c)?' selected':''}>${c?esc(c):'未分類'}</option>`).join('')}</select>`;
   return `<li class="row"><input type="checkbox" ${a} data-f="done"${o.done?' checked':''} aria-label="完成"><input ${a} data-f="t" value="${esc(o.t)}" placeholder="要帶什麼？">${sel}<button class="btn del" data-x="pack" data-i="${i}">刪除</button></li>`;
 }
+let PACK_CAT_EDIT_MODE=false;
 function packHtml(){
   const C=S.packCats;let body='';
   [...C,''].forEach(c=>{
@@ -2039,7 +2044,7 @@ function packHtml(){
     if(!L.length&&c==='')return;
     body+=`<div class="grp"><div class="gh"><b>${c?esc(c):'未分類'}</b><span>${L.filter(x=>x.o.done).length}/${L.length}</span><button class="btn" data-add="pack" data-cat="${esc(c)}">＋ 新增</button></div><ul class="items">${L.map(x=>packRow(x.o,x.i)).join('')}</ul></div>`;
   });
-  return `<div class="ppl"><input id="newcat" placeholder="新增分類，例如：藥品"><button class="btn" data-addcat="1">＋ 分類</button></div><div class="chips">${C.map((c,i)=>`<span class="chip">${esc(c)}<button class="btn del" data-delcat="${i}" aria-label="刪除分類">✕</button></span>`).join('')}</div>${body}<div class="total" id="sum"></div>`;
+  return `<div class="ppl"><input id="newcat" placeholder="新增分類，例如：藥品"><button class="btn" data-addcat="1">＋ 分類</button><button class="btn" type="button" data-manage-packcats="1" aria-pressed="${PACK_CAT_EDIT_MODE}">${PACK_CAT_EDIT_MODE?'完成管理':'管理分類'}</button></div><div class="chips">${C.map((c,i)=>`<span class="chip">${esc(c)}${PACK_CAT_EDIT_MODE?`<button class="btn del" type="button" data-delcat="${i}" aria-label="刪除分類「${esc(c)}」">刪除</button>`:''}</span>`).join('')}</div>${PACK_CAT_EDIT_MODE?'<p class="sub">分類刪除前會再次確認；已有的行李不會一起刪除。</p>':''}${body}<div class="total" id="sum"></div>`;
 }
 function ptotHtml(){const {paid,owed}=expenseTotals();const renderPerson=obj=>{const lines=currencyLines(obj);let total=0,known=false;Object.entries(obj).forEach(([cur,n])=>{const rate=expenseRate(cur);if(rate){total+=n*rate;known=true}});return lines+(known?`<small>${esc(S.hc)} ${f2(total)}</small>`:'')};return `<div class="ptot-head"><span>旅伴</span><span>已付</span><span>應分攤</span></div>`+S.people.map((p,i)=>`<div class="ptot-row"><b>${esc(p)}</b><span>${renderPerson(paid[i])}</span><span>${renderPerson(owed[i])}</span></div>`).join('')}
 const WC=['食品零食','美妝保養','服飾','藥妝','文具雜貨','伴手禮','其他'];
@@ -2590,8 +2595,24 @@ oth.onclick=e=>{
   if(dr){delete S.rates[dr.dataset.delrt];save();render();return}
   const ac=e.target.closest('[data-addcat]');
   if(ac){if(Date.now()-LASTADD<1000)return;const v=$('newcat').value.trim();if(!v){flash('請先在左邊輸入分類名稱');$('newcat').focus();return}if(S.packCats.includes(v)){flash('已經有這個分類了');return}S.packCats.push(v);save();render();flash('已新增分類「'+v+'」');return}
+  const managePackCats=e.target.closest('[data-manage-packcats]');
+  if(managePackCats){PACK_CAT_EDIT_MODE=!PACK_CAT_EDIT_MODE;render();return}
   const dcat=e.target.closest('[data-delcat]');
-  if(dcat){S.packCats.splice(+dcat.dataset.delcat,1);save();render();return}
+  if(dcat){
+    if(!PACK_CAT_EDIT_MODE||RO)return;
+    const index=Number(dcat.dataset.delcat),category=S.packCats[index];
+    if(!Number.isInteger(index)||!category)return;
+    const count=S.pack.filter(item=>item.cat===category).length;
+    const warning=count?'這個分類有 '+count+' 筆行李。刪除後會移到「未分類」，行李本身不會被刪除。':'此分類目前沒有行李。';
+    ask('確定要刪除分類「'+category+'」嗎？'+warning).then(confirmed=>{
+      if(!confirmed||S.packCats[index]!==category)return;
+      S.pack.forEach(item=>{if(item.cat===category)item.cat=''});
+      S.packCats.splice(index,1);
+      PACK_CAT_EDIT_MODE=false;
+      save();render();flash('已刪除分類「'+category+'」，行李內容已保留');
+    });
+    return;
+  }
   const dp=e.target.closest('[data-delp]');
   if(dp){const j=+dp.dataset.delp;if(S.people.length<2)return;
     ask('刪除旅伴「'+S.people[j]+'」？由他付款的支出會一併刪除，分攤名單也會移除他。').then(ok=>{if(!ok)return;
