@@ -966,6 +966,8 @@ main:has(#tabs .tab[data-tab="4"][aria-selected="true"]){
       </div>
     </section>
     <button class="btn" id="backupTrip" type="button">下載完整行程備份（含照片）</button>
+    <button class="btn" id="inspectLegacyBackup" type="button">檢查並下載舊版本機備份（不會覆蓋資料）</button>
+    <span id="legacyBackupStatus" class="sub" aria-live="polite"></span>
     <section id="shareMigrate" class="share-migrate" hidden><b>偵測到這台手機有尚未同步的舊資料</b><p class="sub">如果這台是你之前編輯行程的手機，請上傳本機資料；若要以雲端版本為準，請忽略此提示。</p><button class="btn main" id="share-upload-local">將這台手機的資料上傳到雲端</button></section>
     <button class="btn main" id="pub" hidden="">發布更新給同行的人</button>
     <button class="btn" id="copy">複製全部內容</button>
@@ -2593,6 +2595,38 @@ document.addEventListener('click',async e=>{
   if(e.target.closest('#share-upload-local')&&pendingLocal){S=pendingLocal;pendingLocal=null;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(err){}const m=document.getElementById('shareMigrate');if(m)m.hidden=true;shareDirty=true;await cloudShareSaveNow();render();flash('已將本機資料上傳到雲端')}
 });
 document.getElementById('backupTrip').addEventListener('click',exportCompleteTrip);
+// Read-only recovery: inspect the legacy browser cache without replacing current cloud or local state.
+document.getElementById('inspectLegacyBackup').addEventListener('click',async()=>{
+  const status=document.getElementById('legacyBackupStatus');
+  const button=document.getElementById('inspectLegacyBackup');
+  button.disabled=true;
+  status.textContent='正在檢查這個瀏覽器的舊版備份…';
+  try{
+    const sources=[];
+    const old=await recoveryRead('current');
+    if(old&&okS(old.data))sources.push({source:'indexeddb-current',savedAt:old.at||null,dirty:!!old.dirty,trip:old.data});
+    try{
+      const local=JSON.parse(localStorage.getItem(KEY)||'null');
+      if(okS(local))sources.push({source:'localStorage-trip-planner-v1',savedAt:null,dirty:null,trip:local});
+    }catch(e){}
+    if(!sources.length){
+      status.textContent='這個瀏覽器沒有找到舊版快照。其他瀏覽器或裝置可能另有資料；請不要清除它們的網站資料。';
+      return;
+    }
+    const bundle={kind:'okinawa-old-browser-recovery-readonly',exportedAt:new Date().toISOString(),sources};
+    const blob=new Blob([JSON.stringify(bundle)],{type:'application/json;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='沖繩舊版瀏覽器救援檔_'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),30000);
+    status.textContent='找到 '+sources.length+' 份舊版資料，已準備下載救援檔。這是檢查檔，請勿直接匯入或覆蓋雲端。';
+  }catch(e){
+    status.textContent='檢查失敗：'+(e.message||'請稍後再試')+'。現有行程未變更。';
+  }finally{button.disabled=false}
+});
+
 document.getElementById('recoverLocal').addEventListener('click',async()=>{
   if(!recoveryConflict)return;
   if(!confirm('將以本機版覆蓋雲端版本。請先下載完整備份，確定要上傳本機版嗎？'))return;
