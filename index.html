@@ -957,6 +957,15 @@ main:has(#tabs .tab[data-tab="4"][aria-selected="true"]){
   <div class="foot">
     <div class="cloud-login-box" id="cloudLoginBox"><label for="cloudEmail">電子郵件</label><input id="cloudEmail" type="email" data-keep="1" autocomplete="email" inputmode="email" placeholder="輸入已獲授權的電子郵件"><button class="btn main" id="cloudLogin" type="button">寄送登入連結</button></div>
     <span id="cloudStatus" aria-live="polite">尚未登入：修改前請先登入，才能保存到雲端。</span>
+    <section id="cloudConflictPanel" class="share-migrate" hidden>
+      <b>這台裝置有尚未確認同步的行程</b>
+      <p class="sub">為避免覆蓋照片與行程，已暫停自動上傳。請先下載完整備份，再選擇保留哪一版。</p>
+      <div class="share-row-actions">
+        <button class="btn" id="recoverLocal">保留本機版並同步</button>
+        <button class="btn" id="recoverRemote">改用雲端版</button>
+      </div>
+    </section>
+    <button class="btn" id="backupTrip" type="button">下載完整行程備份（含照片）</button>
     <section id="shareMigrate" class="share-migrate" hidden><b>偵測到這台手機有尚未同步的舊資料</b><p class="sub">如果這台是你之前編輯行程的手機，請上傳本機資料；若要以雲端版本為準，請忽略此提示。</p><button class="btn main" id="share-upload-local">將這台手機的資料上傳到雲端</button></section>
     <button class="btn main" id="pub" hidden="">發布更新給同行的人</button>
     <button class="btn" id="copy">複製全部內容</button>
@@ -980,22 +989,140 @@ const okS=p=>p&&Array.isArray(p.days)&&p.days.length;
 try{const p=JSON.parse(document.getElementById('data').textContent||'null');if(okS(p))S=p}catch(e){}
 let SHARE_TOKEN='',SHARE_ROLE='',EMAIL_ROLE='',shareTimer=0,sharePoll=0,shareDirty=false,pendingLocal=null,shareUpdated='';
 let SHARE_WAS_EXPLICIT=false; // A user-opened ?share= link always takes precedence over normal account mode.
-const save=()=>{if(RO)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){flash('瀏覽器儲存空間不足，請減少圖片')}
-  if(LOCAL_TEST){cloudStatus('測試模式：修改只保存在這個瀏覽器，不會同步雲端。');return}
-  if(SHARE_TOKEN&&sb&&['owner','editor'].includes(SHARE_ROLE)){shareDirty=true;clearTimeout(shareTimer);shareTimer=setTimeout(cloudShareSaveNow,650)}
-  else if(cloudSession&&sb){clearTimeout(cloudTimer);cloudTimer=setTimeout(cloudSaveNow,700)}
-  else cloudStatus(LOCAL_TEST?'測試模式：修改只保存在這個瀏覽器，不會同步雲端。':'尚未使用共同編輯分享連結，這次修改只存在此裝置。')
+
+/* Offline-first recovery: the full trip (including photos) lives in IndexedDB,
+   rather than exhausting Safari's small localStorage allocation. */
+let recoveryDirty=false,recoveryReady=false,recoveryConflict=null,recoveryWriteChain=Promise.resolve();
+let recoveryTimer=0,localSaveWarningShown=false;
+let cloudSaving=false,cloudRevision=0,cloudRetryMs=15000,cloudRetryHandle=0,cloudResave=false;
+let shareSaving=false,shareRetryMs=15000,shareRetryHandle=0,shareRevision=0;
+function recoveryDB(){
+  return new Promise(resolve=>{
+    if(!window.indexedDB)return resolve(null);
+    try{
+      const req=indexedDB.open('okinawa-trip-recovery',1);
+      req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('snapshots'))db.createObjectStore('snapshots')};
+      req.onsuccess=()=>resolve(req.result);
+      req.onerror=()=>resolve(null);
+      req.onblocked=()=>resolve(null);
+    }catch(e){resolve(null)}
+  });
+}
+async function recoveryRead(key='current'){
+  const db=await recoveryDB();
+  if(!db)return null;
+  return new Promise(resolve=>{
+    try{
+      const tx=db.transaction('snapshots','readonly');
+      const req=tx.objectStore('snapshots').get(key);
+      req.onsuccess=()=>resolve(req.result||null);
+      req.onerror=()=>resolve(null);
+      tx.oncomplete=()=>db.close();
+      tx.onerror=()=>{db.close();resolve(null)};
+    }catch(e){db.close();resolve(null)}
+  });
+}
+function recoveryPersist(state,dirty,key='current'){
+  let snapshot;
+  try{snapshot=JSON.parse(JSON.stringify(state))}catch(e){return Promise.resolve(false)}
+  const job=async()=>{
+    const db=await recoveryDB();
+    if(!db){if(!localSaveWarningShown){localSaveWarningShown=true;cloudStatus('本機備份不可用，請立即下載完整行程備份。')}return false}
+    return new Promise(resolve=>{
+      try{
+        const tx=db.transaction('snapshots','readwrite');
+        tx.objectStore('snapshots').put({data:snapshot,dirty,at:Date.now()},key);
+        tx.oncomplete=()=>{db.close();resolve(true)};
+        tx.onerror=()=>{db.close();resolve(false)};
+        tx.onabort=()=>{db.close();resolve(false)};
+      }catch(e){db.close();resolve(false)}
+    });
+  };
+  recoveryWriteChain=recoveryWriteChain.catch(()=>false).then(job);
+  return recoveryWriteChain;
+}
+async function recoveryBoot(){
+  const rec=await recoveryRead();
+  if(rec&&okS(rec.data)){
+    S=rec.data;recoveryReady=true;recoveryDirty=!!rec.dirty;return;
+  }
+  try{
+    const local=JSON.parse(localStorage.getItem(KEY)||'null');
+    if(okS(local)){
+      S=local;recoveryReady=true;recoveryDirty=true;
+      await recoveryPersist(S,true);
+    }
+  }catch(e){console.warn('Legacy cache unavailable',e)}
+}
+function recoverySave(dirty=true){
+  recoveryDirty=dirty;
+  clearTimeout(recoveryTimer);
+  recoveryTimer=setTimeout(()=>recoveryPersist(S,dirty),100);
+}
+window.addEventListener('pagehide',()=>{if(recoveryDirty)recoveryPersist(S,true)});
+function showCloudConflict(remote){
+  recoveryConflict=remote||null;
+  const panel=document.getElementById('cloudConflictPanel');
+  if(panel)panel.hidden=!recoveryConflict;
+}
+function exportCompleteTrip(){
+  try{
+    const json=JSON.stringify({version:2,exportedAt:new Date().toISOString(),trip:S});
+    const blob=new Blob([json],{type:'application/json;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='沖繩行程完整備份_'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),30000);
+    flash('備份已準備下載：包含圖片、行程、旅費及其他資料',5000);
+  }catch(e){flash('備份失敗，請保留頁面並稍後重試',6000)}
+}
+
+const save=()=>{if(RO)return;
+  cloudRevision++;shareRevision++;recoverySave(true);
+  if(LOCAL_TEST){cloudStatus('測試模式：已暫存到此裝置，不會同步雲端。');return}
+  if(recoveryConflict){cloudStatus('偵測到不同版本：請先備份，再選擇以本機或雲端為準。');return}
+  if(SHARE_TOKEN&&sb&&['owner','editor'].includes(SHARE_ROLE)){
+    shareDirty=true;clearTimeout(shareTimer);clearTimeout(shareRetryHandle);
+    shareTimer=setTimeout(cloudShareSaveNow,3500);
+  }else if(cloudSession&&sb){
+    cloudResave=true;clearTimeout(cloudTimer);clearTimeout(cloudRetryHandle);
+    cloudTimer=setTimeout(cloudSaveNow,3500);
+  }else cloudStatus('目前只暫存在此裝置；登入與雲端恢復後再同步。');
 };
 async function cloudShareSaveNow(){
-  if(!SHARE_TOKEN||!sb||!['owner','editor'].includes(SHARE_ROLE)||!shareDirty)return;
-  const snapshot=JSON.parse(JSON.stringify(S));shareDirty=false;cloudStatus('正在同步到雲端…');
-  try{const {data,error}=await sb.rpc('trip_share_save',{p_token:SHARE_TOKEN,p_data:snapshot});if(error)throw error;shareUpdated=data?.updated_at||new Date().toISOString();cloudStatus('已同步到雲端 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));}
-  catch(e){shareDirty=true;cloudStatus('雲端同步失敗：'+(e.message||'請重新整理'));flash('同步失敗，請保留此頁不要關閉',5000)}
+  if(!SHARE_TOKEN||!sb||!['owner','editor'].includes(SHARE_ROLE)||!shareDirty||recoveryConflict||shareSaving)return;
+  shareSaving=true;
+  const revision=shareRevision;
+  const snapshot=JSON.parse(JSON.stringify(S));
+  shareDirty=false;cloudStatus('正在同步到雲端…');
+  try{
+    const {data,error}=await sb.rpc('trip_share_save',{p_token:SHARE_TOKEN,p_data:snapshot});
+    if(error)throw error;
+    shareUpdated=data?.updated_at||new Date().toISOString();
+    shareRetryMs=15000;
+    if(revision===shareRevision){
+      recoveryDirty=false;await recoveryPersist(S,false);
+      cloudStatus('已同步到雲端 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));
+    }else{
+      shareDirty=true;
+      cloudStatus('有新修改待同步，正在安排儲存…');
+    }
+  }catch(e){
+    shareDirty=true;
+    cloudStatus('雲端同步失敗；已保留本機備份，將稍後重試：'+(e.message||'網路暫時中斷'));
+    clearTimeout(shareRetryHandle);
+    shareRetryHandle=setTimeout(cloudShareSaveNow,shareRetryMs);
+    shareRetryMs=Math.min(120000,shareRetryMs*2);
+  }finally{
+    shareSaving=false;
+    if(shareDirty&&!shareRetryHandle){clearTimeout(shareTimer);shareTimer=setTimeout(cloudShareSaveNow,3500)}
+  }
 }
 async function pollSharedState(){
-  if(!SHARE_TOKEN||!sb||document.hidden)return;
+  if(!SHARE_TOKEN||!sb||document.hidden||shareDirty||recoveryDirty||recoveryConflict)return;
   try{const {data,error}=await sb.rpc('trip_share_get',{p_token:SHARE_TOKEN});if(error)throw error;
-    if(data.updated_at&&data.updated_at!==shareUpdated&&!shareDirty){if(okS(data.data)){S=data.data;shareUpdated=data.updated_at;if(SHARE_ROLE!=='voter')try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}render();cloudStatus('已取得最新共同資料 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));}}
+    if(data.updated_at&&data.updated_at!==shareUpdated&&!shareDirty){if(okS(data.data)){S=data.data;shareUpdated=data.updated_at;if(SHARE_ROLE!=='voter')recoverySave(false);render();cloudStatus('已取得最新共同資料 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));}}
   }catch(e){cloudStatus('同步連線中斷：'+(e.message||'請檢查分享連結'))}
 }
 function shareUrl(token){return 'https://okinawa-itinerary-two.vercel.app'+location.pathname+'?share='+encodeURIComponent(token)}
@@ -1045,30 +1172,54 @@ async function loadShareMode(authSession=null){
     return false;
   }
   const {data,error}=await sb.rpc('trip_share_get',{p_token:SHARE_TOKEN});if(error)throw error;
-  SHARE_ROLE=data.role;shareUpdated=data.updated_at||'';S=data.data;RO=!['owner','editor'].includes(SHARE_ROLE);
+  SHARE_ROLE=data.role;shareUpdated=data.updated_at||'';
+  if(recoveryDirty&&okS(S)&&JSON.stringify(S)!==JSON.stringify(data.data)){
+    pendingLocal=JSON.parse(JSON.stringify(S));
+    recoveryConflict=data.data;
+    RO=true;
+    showCloudConflict(data.data);
+  }else{
+    S=data.data;RO=!['owner','editor'].includes(SHARE_ROLE);
+    recoveryDirty=false;recoveryPersist(S,false);
+  }
   try{const raw=localStorage.getItem(KEY);if(raw){const local=JSON.parse(raw);if(okS(local)&&JSON.stringify(local)!==JSON.stringify(S)&&SHARE_ROLE==='owner')pendingLocal=local;}}catch(e){}
-  render();cloudStatus(({owner:'管理者',editor:'共同編輯',voter:'願望登記',viewer:'唯讀'}[SHARE_ROLE]||'分享')+'模式 · 雲端資料已載入');
+  render();cloudStatus(recoveryConflict?'本機與雲端資料不同，已暫停同步；請先下載完整備份並選擇版本。':(({owner:'管理者',editor:'共同編輯',voter:'願望登記',viewer:'唯讀'}[SHARE_ROLE]||'分享')+'模式 · 雲端資料已載入'));
   const login=document.getElementById('cloudLoginBox');if(login)login.hidden=true;
   const manager=document.getElementById('shareManager');if(manager)manager.hidden=SHARE_ROLE!=='owner';
   const jump=document.getElementById('shareJump');if(jump)jump.hidden=SHARE_ROLE!=='owner';
   const migrate=document.getElementById('shareMigrate');if(migrate)migrate.hidden=!pendingLocal;
   if(SHARE_ROLE==='owner')renderShareManager();
-  if(sharePoll)clearInterval(sharePoll);sharePoll=setInterval(pollSharedState,4000);
+  if(sharePoll)clearInterval(sharePoll);sharePoll=setInterval(pollSharedState,30000);
   return true;
 }
 
 async function cloudSaveNow(){
-  if(!sb||!cloudSession||RO)return;
+  if(!sb||!cloudSession||RO||recoveryConflict||cloudSaving)return;
+  cloudSaving=true;cloudResave=false;
+  const revision=cloudRevision;
+  const snapshot=JSON.parse(JSON.stringify(S));
   cloudStatus('正在保存到雲端…');
   try{
-    const {error}=await sb.from('trip_state').upsert({id:'main',data:S,updated_at:new Date().toISOString()},{onConflict:'id'});
+    const {error}=await sb.from('trip_state').upsert({id:'main',data:snapshot,updated_at:new Date().toISOString()},{onConflict:'id'});
     if(error)throw error;
-    try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
-    cloudStatus('雲端已保存 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+    cloudRetryMs=15000;clearTimeout(cloudRetryHandle);cloudRetryHandle=0;
+    if(revision===cloudRevision){
+      recoveryDirty=false;
+      await recoveryPersist(S,false);
+      cloudStatus('雲端已保存 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+    }else{
+      cloudResave=true;cloudStatus('有新修改待同步，正在安排儲存…');
+    }
   }catch(e){
+    cloudResave=true;
     console.error('Supabase save failed',e);
-    cloudStatus('雲端保存失敗：'+(e.message||'請重新登入或稍後重試'));
-    flash('雲端保存失敗，請先不要關閉此頁',5000);
+    cloudStatus('雲端保存失敗，已保存本機備份；將稍後重試：'+(e.message||'連線暫時中斷'));
+    clearTimeout(cloudRetryHandle);
+    cloudRetryHandle=setTimeout(()=>{cloudRetryHandle=0;cloudSaveNow()},cloudRetryMs);
+    cloudRetryMs=Math.min(120000,cloudRetryMs*2);
+  }finally{
+    cloudSaving=false;
+    if(cloudResave&&!cloudRetryHandle){clearTimeout(cloudTimer);cloudTimer=setTimeout(cloudSaveNow,3500)}
   }
 }
 function applyRO(){
@@ -2377,48 +2528,47 @@ render();
 async function cloudApplySession(session){
   cloudSession=session||null;
   EMAIL_ROLE='';
-  await renderShareManager();
   if(!cloudSession){
     RO=!LOCAL_TEST;
-    let restored=false;
-    try{
-      const raw=localStorage.getItem(KEY);
-      if(raw){const local=JSON.parse(raw);if(okS(local)){S=local;restored=true}}
-    }catch(e){console.warn('Local trip cache could not be restored',e)}
+    if(!recoveryReady){
+      try{const local=JSON.parse(localStorage.getItem(KEY)||'null');if(okS(local)){S=local;recoveryReady=true}}catch(e){}
+    }
     render();
-    cloudStatus(LOCAL_TEST?'測試模式：可測試新增、編輯與排入行程；資料只保存在此瀏覽器，不會同步雲端。':(restored?'尚未登入：目前顯示此裝置的暫存資料（唯讀），登入後即可讀取最新雲端資料。':'尚未登入：請使用管理者或同行分享連結進入，才能讀取共同資料。'));
-    const b=document.getElementById('cloudLogin');if(b){b.textContent=LOCAL_TEST?'測試模式（不登入）':'登入並同步';b.disabled=LOCAL_TEST}
+    cloudStatus(LOCAL_TEST?'測試模式：本機資料不會同步雲端。':
+      (recoveryReady?'尚未登入：目前顯示本機行程（唯讀），已保留完整備份。':'尚未登入：請登入後載入雲端資料。'));
+    const b=document.getElementById('cloudLogin');
+    if(b){b.textContent=LOCAL_TEST?'測試模式（不登入）':'登入並同步';b.disabled=LOCAL_TEST}
     const em=document.getElementById('cloudEmail');if(em&&LOCAL_TEST)em.disabled=true;
     return;
   }
-  const email=(cloudSession.user&&cloudSession.user.email||'').toLowerCase();
+  const email=(cloudSession.user?.email||'').toLowerCase();
+  const b=document.getElementById('cloudLogin');if(b)b.textContent='登出';
   try{
     const {data:member,error:memberError}=await sb.from('trip_members').select('role').ilike('email',email).maybeSingle();
     if(memberError)throw memberError;
     if(!member||!['owner','editor'].includes(member.role)){
-      RO=true;render();cloudStatus('已登入 '+email+'，但尚未獲得編輯權限。');
-      const b=document.getElementById('cloudLogin');if(b)b.textContent='登出';
-      return;
+      RO=true;render();cloudStatus('已登入 '+email+'，但尚未獲得編輯權限。');return;
     }
     EMAIL_ROLE=member.role;
-    RO=false;
     const {data:row,error:loadError}=await sb.from('trip_state').select('data,updated_at').eq('id','main').maybeSingle();
     if(loadError)throw loadError;
-    if(row&&row.data&&okS(row.data)){
-      S=row.data;
-      try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
-      render();
-      cloudStatus('雲端資料已載入 · '+email);
+    if(recoveryDirty&&okS(S)&&(!row||!okS(row.data)||JSON.stringify(S)!==JSON.stringify(row.data))){
+      showCloudConflict(row&&okS(row.data)?row.data:{});
+      RO=true;render();
+      cloudStatus('偵測到本機未同步的內容，暫停自動上傳。請先下載完整備份再選擇版本。');
+    }else if(row&&okS(row.data)){
+      S=row.data;RO=false;recoveryDirty=false;showCloudConflict(null);
+      recoveryPersist(S,false);
+      render();cloudStatus('雲端資料已載入 · '+email);
     }else{
-      try{const raw=localStorage.getItem(KEY);if(raw){const local=JSON.parse(raw);if(okS(local))S=local}}catch(e){}
-      render();
-      await cloudSaveNow();
+      RO=true;showCloudConflict({});
+      render();cloudStatus('雲端尚無行程。已保留本機資料，請先備份再手動選擇上傳。');
     }
-    const b=document.getElementById('cloudLogin');if(b)b.textContent='登出';
     await renderShareManager();
   }catch(e){
     console.error('Supabase init failed',e);
-    RO=true;render();cloudStatus('雲端連線失敗：'+(e.message||'請稍後重試'));
+    RO=true;render();
+    cloudStatus('雲端連線失敗：本機資料仍保留，請先下載備份。'+(e.message||'稍後重試'));
   }
 }
 document.addEventListener('click',async e=>{
@@ -2438,23 +2588,53 @@ document.addEventListener('click',async e=>{
   if(revoke){if(!confirm('確定撤銷這條分享連結？撤銷後對方將無法再讀取或修改。'))return;if(!canManageShares()){flash('需要管理者權限');return}const {error}=SHARE_TOKEN&&SHARE_ROLE==='owner'?await sb.rpc('trip_share_revoke',{p_owner_token:SHARE_TOKEN,p_share_id:revoke.dataset.shareRevoke}):await sb.rpc('trip_owner_share_revoke',{p_share_id:revoke.dataset.shareRevoke});if(error){flash('撤銷失敗：'+error.message);return}renderShareManager();flash('分享連結已撤銷')}
   if(e.target.closest('#share-upload-local')&&pendingLocal){S=pendingLocal;pendingLocal=null;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(err){}const m=document.getElementById('shareMigrate');if(m)m.hidden=true;shareDirty=true;await cloudShareSaveNow();render();flash('已將本機資料上傳到雲端')}
 });
+document.getElementById('backupTrip').addEventListener('click',exportCompleteTrip);
+document.getElementById('recoverLocal').addEventListener('click',async()=>{
+  if(!recoveryConflict)return;
+  if(!confirm('將以本機版覆蓋雲端版本。請先下載完整備份，確定要上傳本機版嗎？'))return;
+  showCloudConflict(null);
+  recoveryDirty=true;RO=false;render();
+  if(SHARE_TOKEN&&['owner','editor'].includes(SHARE_ROLE)){shareDirty=true;await cloudShareSaveNow()}
+  else if(cloudSession&&EMAIL_ROLE){cloudResave=true;await cloudSaveNow()}
+  else cloudStatus('本機資料保留中，待登入成功後再同步。');
+});
+document.getElementById('recoverRemote').addEventListener('click',async()=>{
+  if(!recoveryConflict||!okS(recoveryConflict))return;
+  if(!confirm('將改用雲端版本，先前的本機資料會保留一份救援副本。確定繼續嗎？'))return;
+  await recoveryPersist(S,true,'previous-unsynced');
+  S=recoveryConflict;recoveryDirty=false;showCloudConflict(null);
+  RO=SHARE_TOKEN?!['owner','editor'].includes(SHARE_ROLE):!(cloudSession&&EMAIL_ROLE);
+  await recoveryPersist(S,false);render();cloudStatus('已載入雲端版本，舊本機版另存救援副本。');
+});
 document.getElementById('cloudLogin').addEventListener('click',async()=>{
   if(!sb){flash('雲端服務尚未載入，請重新整理');return}
   if(cloudSession){
-    const {error}=await sb.auth.signOut();
-    if(error){cloudStatus('登出失敗：'+error.message);return}
-    await cloudApplySession(null);return;
+    try{
+      const {error}=await sb.auth.signOut();
+      if(error)throw error;
+      await cloudApplySession(null);
+      return;
+    }catch(e){
+      const {error:localError}=await sb.auth.signOut({scope:'local'});
+      if(localError){cloudStatus('登出失敗：'+localError.message);return}
+      await cloudApplySession(null);
+      cloudStatus('雲端暫時無法連線，已在這台裝置登出；未同步內容仍保存在本機。');
+      return;
+    }
   }
   const emailInput=document.getElementById('cloudEmail');
   const email=emailInput?emailInput.value:'';
   if(!email||!email.trim()){cloudStatus('請先輸入已獲授權的電子郵件。');if(emailInput)emailInput.focus();return;}
   cloudStatus('正在寄送登入連結…');
-  const {error}=await sb.auth.signInWithOtp({email:email.trim(),options:{emailRedirectTo:window.location.origin}});
-  if(error){cloudStatus('無法寄送登入連結：'+error.message);return}
-  cloudStatus('登入連結已寄出，請開啟電子郵件並點擊連結，再回到此網站。');
-  flash('已寄出登入連結，請查看電子郵件',4000);
+  try{
+    const {error}=await sb.auth.signInWithOtp({email:email.trim(),options:{emailRedirectTo:window.location.origin}});
+    if(error)throw error;
+    cloudStatus('登入連結已寄出，請開啟電子郵件並點擊連結，再回到此網站。');
+    flash('已寄出登入連結，請查看電子郵件',4000);
+  }catch(e){cloudStatus('無法寄送登入連結：雲端連線失敗。'+(e.message||'請稍後再試'))}
 });
 (async()=>{
+  await recoveryBoot();
   try{
     if(!window.supabase||!window.supabase.createClient)throw new Error('Supabase 程式載入失敗');
     sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
