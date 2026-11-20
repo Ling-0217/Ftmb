@@ -966,6 +966,7 @@ main:has(#tabs .tab[data-tab="4"][aria-selected="true"]){
       </div>
     </section>
     <button class="btn" id="backupTrip" type="button">下載完整行程備份（含照片）</button>
+    <span id="backupStatus" class="sub" aria-live="polite">備份前會重新核對雲端；未同步的版本會清楚標示。</span>
     <button class="btn" id="inspectLegacyBackup" type="button">檢查並下載舊版本機備份（不會覆蓋資料）</button>
     <span id="legacyBackupStatus" class="sub" aria-live="polite"></span>
     <section id="shareMigrate" class="share-migrate" hidden><b>偵測到這台手機有尚未同步的舊資料</b><p class="sub">如果這台是你之前編輯行程的手機，請上傳本機資料；若要以雲端版本為準，請忽略此提示。</p><button class="btn main" id="share-upload-local">將這台手機的資料上傳到雲端</button></section>
@@ -1001,6 +1002,7 @@ let SHARE_WAS_EXPLICIT=false; // A user-opened ?share= link always takes precede
 let recoveryDirty=false,recoveryReady=false,recoveryConflict=null,recoveryWriteChain=Promise.resolve();
 let recoveryTimer=0,localSaveWarningShown=false;
 let cloudSaving=false,cloudRevision=0,cloudRetryMs=15000,cloudRetryHandle=0,cloudResave=false;
+let cloudSavedUpdatedAt=''; // Database version token for safe, conditional saves.
 let shareSaving=false,shareRetryMs=15000,shareRetryHandle=0,shareRevision=0;
 function recoveryDB(){
   return new Promise(resolve=>{
@@ -1071,21 +1073,60 @@ function showCloudConflict(remote){
   const panel=document.getElementById('cloudConflictPanel');
   if(panel)panel.hidden=!recoveryConflict;
 }
-function exportCompleteTrip(){
+async function exportCompleteTrip(){
+  const button=document.getElementById('backupTrip');
+  const status=document.getElementById('backupStatus');
+  const initialRevision=cloudRevision;
+  const localSnapshot=JSON.parse(JSON.stringify(S));
+  let backupData=localSnapshot,backupSource='local-not-cloud-verified';
+  let cloudUpdatedAt=null,warning='';
+  button.disabled=true;
+  status.textContent='正在從雲端重新讀取資料，核對是否真的保存…';
   try{
-    const json=JSON.stringify({version:2,exportedAt:new Date().toISOString(),trip:S});
+    const pending=recoveryDirty||cloudSaving||cloudResave||!!cloudRetryHandle||!!recoveryConflict;
+    if(sb&&cloudSession&&EMAIL_ROLE&&!SHARE_TOKEN&&!pending){
+      const {data:row,error}=await sb.from('trip_state').select('data,updated_at').eq('id','main').single();
+      if(error)throw error;
+      if(!row||!okS(row.data))throw new Error('雲端沒有完整行程');
+      cloudUpdatedAt=row.updated_at;
+      if(initialRevision===cloudRevision&&canon(row.data)===canon(localSnapshot)){
+        backupSource='verified-cloud';backupData=row.data;
+      }else{
+        warning='雲端與目前畫面不同，已另外保存本機版本；請勿認為已同步。';
+      }
+    }else if(sb&&SHARE_TOKEN&&!pending){
+      const {data,error}=await sb.rpc('trip_share_get',{p_token:SHARE_TOKEN});
+      if(error)throw error;
+      if(data&&okS(data.data)&&initialRevision===cloudRevision&&canon(data.data)===canon(localSnapshot)){
+        backupSource='verified-shared-cloud';backupData=data.data;cloudUpdatedAt=data.updated_at||null;
+      }else warning='分享資料與目前畫面不一致，這份僅為本機備份。';
+    }else{
+      warning=pending?'有修改尚未確認保存到雲端，這份是本機救援備份。':'目前沒有可核對的登入雲端，這份是本機備份。';
+    }
+  }catch(e){warning='雲端核對失敗：'+(e.message||'連線中斷')+'。這份只是本機備份。'}
+  try{
+    const verified=backupSource==='verified-cloud'||backupSource==='verified-shared-cloud';
+    const payload={version:2,backupSource,cloudUpdatedAt,exportedAt:new Date().toISOString(),trip:backupData};
+    const json=JSON.stringify(payload);
+    // Read the serialized data back before offering it as a file.
+    const parsed=JSON.parse(json);
+    if(!parsed.trip||!okS(parsed.trip)||canon(parsed.trip)!==canon(backupData))throw new Error('備份內容驗證失敗');
     const blob=new Blob([json],{type:'application/json;charset=utf-8'});
     const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url;a.download='沖繩行程完整備份_'+new Date().toISOString().slice(0,10)+'.json';
+    const a=document.createElement('a');a.href=url;
+    a.download='沖繩行程_'+(verified?'雲端已核對':'本機尚未核對')+'_'+new Date().toISOString().slice(0,10)+'.json';
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),30000);
-    flash('備份已準備下載：包含圖片、行程、旅費及其他資料',5000);
-  }catch(e){flash('備份失敗，請保留頁面並稍後重試',6000)}
+    status.textContent=verified?'已重新讀取雲端並核對內容一致，已產生完整備份下載。':'注意：'+warning+' 已產生獨立的本機救援檔。';
+    flash(verified?'雲端內容核對一致，完整備份已準備下載':'本機備份已準備下載，但雲端尚未核對',6000);
+  }catch(e){
+    status.textContent='備份失敗：'+(e.message||'未知原因')+'。請勿清除本機網站資料。';
+  }finally{button.disabled=false}
 }
 
 const save=()=>{if(RO)return;
   cloudRevision++;shareRevision++;recoverySave(true);
+  cloudStatus('本機修改已記錄，雲端尚待確認儲存…');
   if(LOCAL_TEST){cloudStatus('測試模式：已暫存到此裝置，不會同步雲端。');return}
   if(recoveryConflict){cloudStatus('偵測到不同版本：請先備份，再選擇以本機或雲端為準。');return}
   if(SHARE_TOKEN&&sb&&['owner','editor'].includes(SHARE_ROLE)){
@@ -1206,28 +1247,54 @@ async function cloudSaveNow(){
   const snapshot=JSON.parse(JSON.stringify(S));
   cloudStatus('正在保存到雲端…');
   try{
-    const {error}=await sb.from('trip_state').upsert({id:'main',data:snapshot,updated_at:new Date().toISOString()},{onConflict:'id'});
+    if(!cloudSavedUpdatedAt)throw new Error('尚未取得雲端版本，為避免覆蓋資料已停止儲存');
+    const {data:committed,error}=await sb.from('trip_state')
+      .update({data:snapshot,updated_at:new Date().toISOString()})
+      .eq('id','main').eq('updated_at',cloudSavedUpdatedAt)
+      .select('updated_at');
     if(error)throw error;
+    if(!Array.isArray(committed)||committed.length!==1){
+      const {data:remote,error:readError}=await sb.from('trip_state')
+        .select('data,updated_at').eq('id','main').maybeSingle();
+      if(readError)throw readError;
+      if(remote&&okS(remote.data)){
+        cloudSavedUpdatedAt=remote.updated_at;
+        showCloudConflict(remote.data);
+        RO=true;render();
+        throw new Error('雲端版本已變動，為避免覆蓋其他裝置修改已暫停自動儲存');
+      }
+      throw new Error('雲端未接受這次更新，沒有覆蓋任何資料');
+    }
+    cloudSavedUpdatedAt=committed[0].updated_at;
     cloudRetryMs=15000;clearTimeout(cloudRetryHandle);cloudRetryHandle=0;
     if(revision===cloudRevision){
-      recoveryDirty=false;
-      await recoveryPersist(S,false);
-      cloudStatus('雲端已保存 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+      const locallySaved=await recoveryPersist(S,false);
+      recoveryDirty=!locallySaved;
+      cloudStatus(locallySaved?'雲端已確認儲存 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):
+        '雲端已確認儲存，但本機備份未成功；請下載已核對的雲端備份。');
     }else{
-      cloudResave=true;cloudStatus('有新修改待同步，正在安排儲存…');
+      cloudResave=true;
+      cloudStatus('先前修改已儲存，還有新內容待同步…');
     }
   }catch(e){
     cloudResave=true;
     console.error('Supabase save failed',e);
-    cloudStatus('雲端保存失敗，已保存本機備份；將稍後重試：'+(e.message||'連線暫時中斷'));
-    clearTimeout(cloudRetryHandle);
-    cloudRetryHandle=setTimeout(()=>{cloudRetryHandle=0;cloudSaveNow()},cloudRetryMs);
-    cloudRetryMs=Math.min(120000,cloudRetryMs*2);
+    if(recoveryConflict){
+      cloudStatus('發現另一版本，已停止覆蓋；請先備份再決定保留哪一版。'+(e.message||''));
+    }else{
+      cloudStatus('雲端未確認儲存；本機備份保留中，稍後重試：'+(e.message||'連線暫時中斷'));
+      clearTimeout(cloudRetryHandle);
+      cloudRetryHandle=setTimeout(()=>{cloudRetryHandle=0;cloudSaveNow()},cloudRetryMs);
+      cloudRetryMs=Math.min(120000,cloudRetryMs*2);
+    }
   }finally{
     cloudSaving=false;
-    if(cloudResave&&!cloudRetryHandle){clearTimeout(cloudTimer);cloudTimer=setTimeout(cloudSaveNow,3500)}
+    if(cloudResave&&!cloudRetryHandle&&!recoveryConflict){
+      clearTimeout(cloudTimer);cloudTimer=setTimeout(cloudSaveNow,3500);
+    }
   }
 }
+
 function applyRO(){
   document.querySelector('main').classList.toggle('ro',RO);
   document.querySelectorAll('main input,main textarea,main select').forEach(x=>x.disabled=RO&&!x.hasAttribute('data-keep'));
@@ -2534,6 +2601,7 @@ render();
 async function cloudApplySession(session){
   cloudSession=session||null;
   EMAIL_ROLE='';
+  if(!cloudSession)cloudSavedUpdatedAt='';
   if(!cloudSession){
     RO=!LOCAL_TEST;
     if(!recoveryReady){
@@ -2558,6 +2626,7 @@ async function cloudApplySession(session){
     EMAIL_ROLE=member.role;
     const {data:row,error:loadError}=await sb.from('trip_state').select('data,updated_at').eq('id','main').maybeSingle();
     if(loadError)throw loadError;
+    cloudSavedUpdatedAt=row?.updated_at||'';
     if(recoveryDirty&&okS(S)&&(!row||!okS(row.data)||canon(S)!==canon(row.data))){
       showCloudConflict(row&&okS(row.data)?row.data:{});
       RO=true;render();
