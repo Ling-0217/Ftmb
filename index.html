@@ -1038,7 +1038,7 @@ function recoveryPersist(state,dirty,key='current'){
       }catch(e){db.close();resolve(false)}
     });
   };
-  recoveryWriteChain=recoveryWriteChain.catch(()=>false).then(job);
+  recoveryWriteChain=recoveryWriteChain.catch(()=>false).then(job).then(ok=>{if(!ok&&!localSaveWarningShown){localSaveWarningShown=true;cloudStatus('手機本機備份失敗：請立即下載完整行程備份。')}return ok});
   return recoveryWriteChain;
 }
 async function recoveryBoot(){
@@ -1083,11 +1083,11 @@ const save=()=>{if(RO)return;
   if(LOCAL_TEST){cloudStatus('測試模式：已暫存到此裝置，不會同步雲端。');return}
   if(recoveryConflict){cloudStatus('偵測到不同版本：請先備份，再選擇以本機或雲端為準。');return}
   if(SHARE_TOKEN&&sb&&['owner','editor'].includes(SHARE_ROLE)){
-    shareDirty=true;clearTimeout(shareTimer);clearTimeout(shareRetryHandle);
-    shareTimer=setTimeout(cloudShareSaveNow,3500);
+    shareDirty=true;clearTimeout(shareTimer);
+    if(!shareRetryHandle)shareTimer=setTimeout(cloudShareSaveNow,3500);
   }else if(cloudSession&&sb){
-    cloudResave=true;clearTimeout(cloudTimer);clearTimeout(cloudRetryHandle);
-    cloudTimer=setTimeout(cloudSaveNow,3500);
+    cloudResave=true;clearTimeout(cloudTimer);
+    if(!cloudRetryHandle)cloudTimer=setTimeout(cloudSaveNow,3500);
   }else cloudStatus('目前只暫存在此裝置；登入與雲端恢復後再同步。');
 };
 async function cloudShareSaveNow(){
@@ -1100,7 +1100,7 @@ async function cloudShareSaveNow(){
     const {data,error}=await sb.rpc('trip_share_save',{p_token:SHARE_TOKEN,p_data:snapshot});
     if(error)throw error;
     shareUpdated=data?.updated_at||new Date().toISOString();
-    shareRetryMs=15000;
+    shareRetryMs=15000;clearTimeout(shareRetryHandle);shareRetryHandle=0;
     if(revision===shareRevision){
       recoveryDirty=false;await recoveryPersist(S,false);
       cloudStatus('已同步到雲端 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));
@@ -1112,7 +1112,7 @@ async function cloudShareSaveNow(){
     shareDirty=true;
     cloudStatus('雲端同步失敗；已保留本機備份，將稍後重試：'+(e.message||'網路暫時中斷'));
     clearTimeout(shareRetryHandle);
-    shareRetryHandle=setTimeout(cloudShareSaveNow,shareRetryMs);
+    shareRetryHandle=setTimeout(()=>{shareRetryHandle=0;cloudShareSaveNow()},shareRetryMs);
     shareRetryMs=Math.min(120000,shareRetryMs*2);
   }finally{
     shareSaving=false;
@@ -2610,17 +2610,14 @@ document.getElementById('cloudLogin').addEventListener('click',async()=>{
   if(!sb){flash('雲端服務尚未載入，請重新整理');return}
   if(cloudSession){
     try{
-      const {error}=await sb.auth.signOut();
+      const {error}=await sb.auth.signOut({scope:'local'});
       if(error)throw error;
       await cloudApplySession(null);
-      return;
+      cloudStatus('已從這台裝置登出，未同步內容仍保存在本機。');
     }catch(e){
-      const {error:localError}=await sb.auth.signOut({scope:'local'});
-      if(localError){cloudStatus('登出失敗：'+localError.message);return}
-      await cloudApplySession(null);
-      cloudStatus('雲端暫時無法連線，已在這台裝置登出；未同步內容仍保存在本機。');
-      return;
+      cloudStatus('本機登出失敗：'+(e.message||'請稍後再試')+'；請勿清除網站資料。');
     }
+    return;
   }
   const emailInput=document.getElementById('cloudEmail');
   const email=emailInput?emailInput.value:'';
@@ -2656,7 +2653,7 @@ document.getElementById('cloudLogin').addEventListener('click',async()=>{
                  const shared=await loadShareMode(session);
                  if(!shared)await cloudApplySession(session);
                }catch(e){console.error('Login/share reconciliation failed',e);cloudStatus('登入後切換權限失敗：'+(e.message||'請重新整理'))}
-             }else if(!SHARE_TOKEN){
+             }else if(!SHARE_TOKEN&&(event==='SIGNED_IN'||event==='SIGNED_OUT')){
                await cloudApplySession(session);
              }
            },0);
