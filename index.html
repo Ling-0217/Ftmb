@@ -1003,6 +1003,7 @@ let recoveryDirty=false,recoveryReady=false,recoveryConflict=null,recoveryWriteC
 let recoveryTimer=0,localSaveWarningShown=false;
 let cloudSaving=false,cloudRevision=0,cloudRetryMs=15000,cloudRetryHandle=0,cloudResave=false;
 let cloudSavedUpdatedAt=''; // Database version token for safe, conditional saves.
+let cloudBaseSnapshot=null; // Exact full state last confirmed by database.
 let shareSaving=false,shareRetryMs=15000,shareRetryHandle=0,shareRevision=0;
 function recoveryDB(){
   return new Promise(resolve=>{
@@ -1122,6 +1123,36 @@ async function exportCompleteTrip(){
   }catch(e){
     status.textContent='備份失敗：'+(e.message||'未知原因')+'。請勿清除本機網站資料。';
   }finally{button.disabled=false}
+}
+
+/* Only send changed fields, not the entire multi-megabyte itinerary/photo bundle. */
+function collectTripPatch(before,after,path,output){
+  if(before===after)return;
+  const isObj=x=>x&&typeof x==='object'&&!Array.isArray(x);
+  if(Array.isArray(before)&&Array.isArray(after)){
+    if(before.length!==after.length){output.push({op:'set',path,value:after});return}
+    for(let i=0;i<after.length;i++)collectTripPatch(before[i],after[i],path.concat(String(i)),output);
+  }else if(isObj(before)&&isObj(after)){
+    for(const key of Object.keys(before)){
+      if(!Object.prototype.hasOwnProperty.call(after,key))output.push({op:'remove',path:path.concat(key)});
+    }
+    for(const key of Object.keys(after)){
+      if(!Object.prototype.hasOwnProperty.call(before,key))output.push({op:'set',path:path.concat(key),value:after[key]});
+      else collectTripPatch(before[key],after[key],path.concat(key),output);
+    }
+  }else output.push({op:'set',path,value:after});
+}
+function buildTripPatch(before,after){
+  const result=[];collectTripPatch(before,after,[],result);
+  if(result.length<=35&&result.every(x=>x.path.length<=12))return result;
+  const summary=[];
+  const keys=new Set([...Object.keys(before||{}),...Object.keys(after||{})]);
+  for(const key of keys){
+    if(!Object.prototype.hasOwnProperty.call(after,key))summary.push({op:'remove',path:[key]});
+    else if(!Object.prototype.hasOwnProperty.call(before,key)||canon(before[key])!==canon(after[key]))
+      summary.push({op:'set',path:[key],value:after[key]});
+  }
+  return summary;
 }
 
 const save=()=>{if(RO)return;
@@ -1245,44 +1276,50 @@ async function cloudSaveNow(){
   cloudSaving=true;cloudResave=false;
   const revision=cloudRevision;
   const snapshot=JSON.parse(JSON.stringify(S));
-  cloudStatus('正在保存到雲端…');
+  cloudStatus('正在保存本次修改到雲端…');
   try{
-    if(!cloudSavedUpdatedAt)throw new Error('尚未取得雲端版本，為避免覆蓋資料已停止儲存');
-    const {data:committed,error}=await sb.from('trip_state')
-      .update({data:snapshot,updated_at:new Date().toISOString()})
-      .eq('id','main').eq('updated_at',cloudSavedUpdatedAt)
-      .select('updated_at');
-    if(error)throw error;
-    if(!Array.isArray(committed)||committed.length!==1){
-      const {data:remote,error:readError}=await sb.from('trip_state')
-        .select('data,updated_at').eq('id','main').maybeSingle();
-      if(readError)throw readError;
-      if(remote&&okS(remote.data)){
-        cloudSavedUpdatedAt=remote.updated_at;
-        showCloudConflict(remote.data);
-        RO=true;render();
-        throw new Error('雲端版本已變動，為避免覆蓋其他裝置修改已暫停自動儲存');
+    if(!cloudSavedUpdatedAt||!cloudBaseSnapshot)
+      throw new Error('尚未取得雲端基準版本，停止覆寫');
+    const patch=buildTripPatch(cloudBaseSnapshot,snapshot);
+    if(patch.length>0){
+      const {data:updatedTime,error}=await sb.rpc('trip_state_apply_patch',{
+        p_expected_updated_at:cloudSavedUpdatedAt,p_patch:patch
+      });
+      if(error){
+        const conflict=error.code==='40001'||/Trip version conflict|Trip version changed/.test(error.message||'');
+        if(conflict){
+          const {data:remote, error:readError}=await sb.from('trip_state')
+            .select('data,updated_at').eq('id','main').maybeSingle();
+          if(readError)throw readError;
+          if(remote&&okS(remote.data)){
+            cloudSavedUpdatedAt=remote.updated_at;
+            cloudBaseSnapshot=JSON.parse(JSON.stringify(remote.data));
+            showCloudConflict(remote.data);
+            RO=true;render();
+          }
+        }
+        throw error;
       }
-      throw new Error('雲端未接受這次更新，沒有覆蓋任何資料');
+      if(!updatedTime)throw new Error('資料庫未回傳確認時間，無法認定已儲存');
+      cloudSavedUpdatedAt=updatedTime;
+      cloudBaseSnapshot=snapshot;
     }
-    cloudSavedUpdatedAt=committed[0].updated_at;
     cloudRetryMs=15000;clearTimeout(cloudRetryHandle);cloudRetryHandle=0;
     if(revision===cloudRevision){
       const locallySaved=await recoveryPersist(S,false);
       recoveryDirty=!locallySaved;
       cloudStatus(locallySaved?'雲端已確認儲存 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):
-        '雲端已確認儲存，但本機備份未成功；請下載已核對的雲端備份。');
+        '雲端已確認儲存，但本機備份失敗；請下載雲端已核對備份。');
     }else{
-      cloudResave=true;
-      cloudStatus('先前修改已儲存，還有新內容待同步…');
+      cloudResave=true;cloudStatus('先前修改已存入雲端，還有新內容待同步…');
     }
   }catch(e){
     cloudResave=true;
     console.error('Supabase save failed',e);
     if(recoveryConflict){
-      cloudStatus('發現另一版本，已停止覆蓋；請先備份再決定保留哪一版。'+(e.message||''));
+      cloudStatus('雲端版本已變動，已停止覆蓋；請先備份再決定保留哪一版。');
     }else{
-      cloudStatus('雲端未確認儲存；本機備份保留中，稍後重試：'+(e.message||'連線暫時中斷'));
+      cloudStatus('雲端儲存未成功確認，本機仍保留修改；稍後重試：'+(e.message||'連線暫時中斷'));
       clearTimeout(cloudRetryHandle);
       cloudRetryHandle=setTimeout(()=>{cloudRetryHandle=0;cloudSaveNow()},cloudRetryMs);
       cloudRetryMs=Math.min(120000,cloudRetryMs*2);
@@ -2601,7 +2638,7 @@ render();
 async function cloudApplySession(session){
   cloudSession=session||null;
   EMAIL_ROLE='';
-  if(!cloudSession)cloudSavedUpdatedAt='';
+  if(!cloudSession){cloudSavedUpdatedAt='';cloudBaseSnapshot=null;}
   if(!cloudSession){
     RO=!LOCAL_TEST;
     if(!recoveryReady){
@@ -2627,6 +2664,7 @@ async function cloudApplySession(session){
     const {data:row,error:loadError}=await sb.from('trip_state').select('data,updated_at').eq('id','main').maybeSingle();
     if(loadError)throw loadError;
     cloudSavedUpdatedAt=row?.updated_at||'';
+    cloudBaseSnapshot=row&&okS(row.data)?JSON.parse(JSON.stringify(row.data)):null;
     if(recoveryDirty&&okS(S)&&(!row||!okS(row.data)||canon(S)!==canon(row.data))){
       showCloudConflict(row&&okS(row.data)?row.data:{});
       RO=true;render();
