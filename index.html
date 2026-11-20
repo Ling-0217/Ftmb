@@ -1173,7 +1173,7 @@ async function loadShareMode(authSession=null){
   }
   const {data,error}=await sb.rpc('trip_share_get',{p_token:SHARE_TOKEN});if(error)throw error;
   SHARE_ROLE=data.role;shareUpdated=data.updated_at||'';
-  if(recoveryDirty&&okS(S)&&JSON.stringify(S)!==JSON.stringify(data.data)){
+  if(recoveryDirty&&okS(S)&&canon(S)!==canon(data.data)){
     pendingLocal=JSON.parse(JSON.stringify(S));
     recoveryConflict=data.data;
     RO=true;
@@ -2552,7 +2552,7 @@ async function cloudApplySession(session){
     EMAIL_ROLE=member.role;
     const {data:row,error:loadError}=await sb.from('trip_state').select('data,updated_at').eq('id','main').maybeSingle();
     if(loadError)throw loadError;
-    if(recoveryDirty&&okS(S)&&(!row||!okS(row.data)||JSON.stringify(S)!==JSON.stringify(row.data))){
+    if(recoveryDirty&&okS(S)&&(!row||!okS(row.data)||canon(S)!==canon(row.data))){
       showCloudConflict(row&&okS(row.data)?row.data:{});
       RO=true;render();
       cloudStatus('偵測到本機未同步的內容，暫停自動上傳。請先下載完整備份再選擇版本。');
