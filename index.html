@@ -995,6 +995,7 @@ let S=blank(),RO=true;
 const okS=p=>p&&Array.isArray(p.days)&&p.days.length;
 try{const p=JSON.parse(document.getElementById('data').textContent||'null');if(okS(p))S=p}catch(e){}
 let SHARE_TOKEN='',SHARE_ROLE='',EMAIL_ROLE='',shareTimer=0,sharePoll=0,shareDirty=false,pendingLocal=null,shareUpdated='';
+let shareBaseSnapshot=null;
 let SHARE_WAS_EXPLICIT=false; // A user-opened ?share= link always takes precedence over normal account mode.
 
 /* Offline-first recovery: the full trip (including photos) lives in IndexedDB,
@@ -1130,7 +1131,19 @@ function collectTripPatch(before,after,path,output){
   if(before===after)return;
   const isObj=x=>x&&typeof x==='object'&&!Array.isArray(x);
   if(Array.isArray(before)&&Array.isArray(after)){
-    if(before.length!==after.length){output.push({op:'set',path,value:after});return}
+    if(before.length!==after.length){
+      if(after.length===before.length+1 && before.every((x,i)=>canon(x)===canon(after[i]))){
+        output.push({op:'set',path:path.concat(String(before.length)),value:after[after.length-1]});return;
+      }
+      if(after.length===before.length-1){
+        for(let removed=0;removed<before.length;removed++){
+          if(after.every((x,i)=>canon(x)===canon(before[i<removed?i:i+1]))){
+            output.push({op:'remove',path:path.concat(String(removed))});return;
+          }
+        }
+      }
+      output.push({op:'set',path,value:after});return;
+    }
     for(let i=0;i<after.length;i++)collectTripPatch(before[i],after[i],path.concat(String(i)),output);
   }else if(isObj(before)&&isObj(after)){
     for(const key of Object.keys(before)){
@@ -1173,34 +1186,66 @@ async function cloudShareSaveNow(){
   shareSaving=true;
   const revision=shareRevision;
   const snapshot=JSON.parse(JSON.stringify(S));
-  shareDirty=false;cloudStatus('正在同步到雲端…');
+  shareDirty=false;cloudStatus('正在同步共同編輯的修改…');
   try{
-    const {data,error}=await sb.rpc('trip_share_save',{p_token:SHARE_TOKEN,p_data:snapshot});
-    if(error)throw error;
-    shareUpdated=data?.updated_at||new Date().toISOString();
+    if(!shareUpdated||!shareBaseSnapshot)throw new Error('尚未取得分享資料的雲端版本，停止覆蓋');
+    const patch=buildTripPatch(shareBaseSnapshot,snapshot);
+    if(patch.length){
+      const {data,error}=await sb.rpc('trip_share_apply_patch',{
+        p_token:SHARE_TOKEN,p_expected_updated_at:shareUpdated,p_patch:patch
+      });
+      if(error){
+        const conflict=error.code==='40001'||/Trip version conflict|Trip version changed/.test(error.message||'');
+        if(conflict){
+          const {data:remote,error:readError}=await sb.rpc('trip_share_get',{p_token:SHARE_TOKEN});
+          if(readError)throw readError;
+          if(remote&&okS(remote.data)){
+            shareUpdated=remote.updated_at;
+            shareBaseSnapshot=JSON.parse(JSON.stringify(remote.data));
+            showCloudConflict(remote.data);RO=true;render();
+          }
+        }
+        throw error;
+      }
+      if(!data||!data.updated_at)throw new Error('雲端未回傳儲存版本');
+      shareUpdated=data.updated_at;
+      shareBaseSnapshot=snapshot;
+    }
     shareRetryMs=15000;clearTimeout(shareRetryHandle);shareRetryHandle=0;
     if(revision===shareRevision){
-      recoveryDirty=false;await recoveryPersist(S,false);
-      cloudStatus('已同步到雲端 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));
+      const saved=await recoveryPersist(snapshot,false);
+      if(revision===shareRevision){
+        recoveryDirty=!saved;
+        cloudStatus(saved?'共同編輯修改已確認儲存到雲端':'共同編輯雲端已存，但本機備份失敗，請另行備份。');
+      }else{
+        recoveryDirty=true;shareDirty=true;await recoveryPersist(S,true);
+        cloudStatus('後續修改仍待同步…');
+      }
     }else{
-      shareDirty=true;
-      cloudStatus('有新修改待同步，正在安排儲存…');
+      shareDirty=true;cloudStatus('先前修改已儲存，還有新內容待同步…');
     }
   }catch(e){
     shareDirty=true;
-    cloudStatus('雲端同步失敗；已保留本機備份，將稍後重試：'+(e.message||'網路暫時中斷'));
-    clearTimeout(shareRetryHandle);
-    shareRetryHandle=setTimeout(()=>{shareRetryHandle=0;cloudShareSaveNow()},shareRetryMs);
-    shareRetryMs=Math.min(120000,shareRetryMs*2);
+    if(recoveryConflict){
+      cloudStatus('分享資料已被其他裝置更新，已停止覆蓋，請先下載備份。');
+    }else{
+      cloudStatus('共享資料尚未確認保存，本機仍保留修改；將稍後重試：'+(e.message||'連線中斷'));
+      clearTimeout(shareRetryHandle);
+      shareRetryHandle=setTimeout(()=>{shareRetryHandle=0;cloudShareSaveNow()},shareRetryMs);
+      shareRetryMs=Math.min(120000,shareRetryMs*2);
+    }
   }finally{
     shareSaving=false;
-    if(shareDirty&&!shareRetryHandle){clearTimeout(shareTimer);shareTimer=setTimeout(cloudShareSaveNow,3500)}
+    if(shareDirty&&!shareRetryHandle&&!recoveryConflict){
+      clearTimeout(shareTimer);shareTimer=setTimeout(cloudShareSaveNow,3500);
+    }
   }
 }
+
 async function pollSharedState(){
   if(!SHARE_TOKEN||!sb||document.hidden||shareDirty||recoveryDirty||recoveryConflict)return;
   try{const {data,error}=await sb.rpc('trip_share_get',{p_token:SHARE_TOKEN});if(error)throw error;
-    if(data.updated_at&&data.updated_at!==shareUpdated&&!shareDirty){if(okS(data.data)){S=data.data;shareUpdated=data.updated_at;if(SHARE_ROLE!=='voter')recoverySave(false);render();cloudStatus('已取得最新共同資料 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));}}
+    if(data.updated_at&&data.updated_at!==shareUpdated&&!shareDirty){if(okS(data.data)){S=data.data;shareUpdated=data.updated_at;shareBaseSnapshot=JSON.parse(JSON.stringify(data.data));if(SHARE_ROLE!=='voter')recoverySave(false);render();cloudStatus('已取得最新共同資料 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));}}
   }catch(e){cloudStatus('同步連線中斷：'+(e.message||'請檢查分享連結'))}
 }
 function shareUrl(token){return window.location.origin+location.pathname+(USE_V2_BACKEND?'?backend=v2&share=':'?backend=v1&share=')+encodeURIComponent(token)}
@@ -1245,12 +1290,12 @@ async function loadShareMode(authSession=null){
     SHARE_TOKEN=token;
   }
   if(!SHARE_TOKEN){
-    SHARE_ROLE='';shareDirty=false;
+    SHARE_ROLE='';shareDirty=false;shareBaseSnapshot=null;
     if(sharePoll){clearInterval(sharePoll);sharePoll=0}
     return false;
   }
   const {data,error}=await sb.rpc('trip_share_get',{p_token:SHARE_TOKEN});if(error)throw error;
-  SHARE_ROLE=data.role;shareUpdated=data.updated_at||'';
+  SHARE_ROLE=data.role;shareUpdated=data.updated_at||'';shareBaseSnapshot=JSON.parse(JSON.stringify(data.data));
   if(recoveryDirty&&okS(S)&&canon(S)!==canon(data.data)){
     pendingLocal=JSON.parse(JSON.stringify(S));
     recoveryConflict=data.data;
@@ -1306,10 +1351,16 @@ async function cloudSaveNow(){
     }
     cloudRetryMs=15000;clearTimeout(cloudRetryHandle);cloudRetryHandle=0;
     if(revision===cloudRevision){
-      const locallySaved=await recoveryPersist(S,false);
-      recoveryDirty=!locallySaved;
-      cloudStatus(locallySaved?'雲端已確認儲存 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):
-        '雲端已確認儲存，但本機備份失敗；請下載雲端已核對備份。');
+      const locallySaved=await recoveryPersist(snapshot,false);
+      if(revision===cloudRevision){
+        recoveryDirty=!locallySaved;
+        cloudStatus(locallySaved?'雲端已確認儲存 · '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):
+          '雲端已確認儲存，但本機備份失敗；請下載雲端已核對備份。');
+      }else{
+        recoveryDirty=true;cloudResave=true;
+        await recoveryPersist(S,true);
+        cloudStatus('還有後續修改待同步…');
+      }
     }else{
       cloudResave=true;cloudStatus('先前修改已存入雲端，還有新內容待同步…');
     }
