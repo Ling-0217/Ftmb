@@ -2045,7 +2045,7 @@ function packHtml(){
   return `<div class="ppl"><input id="newcat" placeholder="新增分類，例如：藥品"><button class="btn" data-addcat="1">＋ 分類</button><button class="btn" type="button" data-manage-packcats="1" aria-pressed="${PACK_CAT_EDIT_MODE}">${PACK_CAT_EDIT_MODE?'完成管理':'管理分類'}</button></div><div class="chips">${C.map((c,i)=>`<span class="chip">${esc(c)}${PACK_CAT_EDIT_MODE?`<button class="btn del" type="button" data-delcat="${i}" aria-label="刪除分類「${esc(c)}」">刪除</button>`:''}</span>`).join('')}</div>${PACK_CAT_EDIT_MODE?'<p class="sub">分類刪除前會再次確認；已有的行李不會一起刪除。</p>':''}${body}<div class="total" id="sum"></div>`;
 }
 function ptotHtml(){const {paid,owed}=expenseTotals();const renderPerson=obj=>{const lines=currencyLines(obj);let total=0,known=false;Object.entries(obj).forEach(([cur,n])=>{const rate=expenseRate(cur);if(rate){total+=n*rate;known=true}});return lines+(known?`<small>${esc(S.hc)} ${f2(total)}</small>`:'')};return `<div class="ptot-head"><span>旅伴</span><span>已付</span><span>應分攤</span></div>`+S.people.map((p,i)=>`<div class="ptot-row"><b>${esc(p)}</b><span>${renderPerson(paid[i])}</span><span>${renderPerson(owed[i])}</span></div>`).join('')}
-const WC=['食品零食','美妝保養','服飾','藥妝','文具雜貨','伴手禮','其他'];
+const WC=['食品零食','美妝保養','服飾','藥妝','文具雜貨','伴手禮','御守／御朱印','其他'];
 const CUR=['JPY','TWD','USD','EUR','KRW','THB','HKD','CNY'];
 let WF='全部',ME=null,COORD={},WISH_EDIT=-1,WISH_DRAFT=null;
 function dinfo(){let t='';if(S.start&&S.end){const n=Math.round((new Date(S.end)-new Date(S.start))/864e5)+1;t=n>0?'共 '+n+' 天'+(n!==S.days.length?'（目前排了 '+S.days.length+' 天）':''):'回國日早於出發日，請確認'}$('dinfo').textContent=t}
