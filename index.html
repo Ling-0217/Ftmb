@@ -848,6 +848,7 @@ main:has(#tabs .tab[data-tab="4"][aria-selected="true"]){
 #day .item.trip-view{grid-template-columns:minmax(0,1fr)!important;gap:9px!important;min-width:0}
 #day .trip-view .trip-view-head{display:flex;align-items:flex-start;flex-wrap:wrap;gap:8px 10px;min-width:0}
 #day .trip-view .trip-view-time{flex:none;display:inline-flex;justify-content:center;min-width:82px;max-width:100%;padding:7px 10px;border:1.5px solid var(--day-line,#CAB4A4);background:var(--day-soft,#FCF8F3);border-radius:10px;color:var(--ink);font-size:13px;font-weight:750;line-height:1.45}
+#day .trip-view .trip-view-head .trip-view-title{flex-basis:0}
 #day .trip-view .trip-view-title{flex:1 1 145px;min-width:0;font-size:16px;font-weight:800;overflow-wrap:anywhere;line-height:1.5}
 #day .trip-view .trip-view-place-row{display:flex;align-items:center;justify-content:space-between;gap:9px;min-width:0}
 #day .trip-view .trip-view-place{flex:1;min-width:0;font-size:13px;color:var(--sub);overflow-wrap:anywhere}
@@ -1546,8 +1547,11 @@ function tripViewHtml(o,i,n){
  if(ticketUrl)details.push('<div class="trip-view-detail"><a href="'+esc(ticketUrl)+'" target="_blank" rel="noopener noreferrer">開啟官方購票／預約網址</a></div>');
  if(o.ticketNote)details.push('<div class="trip-view-detail"><strong>門票備註：</strong>'+esc(o.ticketNote)+'</div>');
  const more=details.length?'<details class="trip-view-more"><summary>查看補充資訊</summary>'+details.join('')+'</details>':'';
- return '<div class="trip-view-head"><span class="trip-view-time">'+esc(tripTimeLabel(o.time))+'</span><strong class="trip-view-title">'+esc(o.name||'未命名行程')+'</strong></div>'+
-  (o.place?'<div class="trip-view-place-row"><span class="trip-view-place">'+esc(o.place)+'</span><a class="btn trip-view-map" data-map="'+i+'" href="#" target="_blank" rel="noopener noreferrer">地圖</a></div>':'')+
+ const place=String(o.place||'').trim();
+ const repeatsTitle=place&&place===String(o.name||'').trim();
+ const mapLink=place?'<a class="btn trip-view-map" data-map="'+i+'" href="#" target="_blank" rel="noopener noreferrer">地圖</a>':'';
+ return '<div class="trip-view-head"><span class="trip-view-time">'+esc(tripTimeLabel(o.time))+'</span><strong class="trip-view-title">'+esc(o.name||'未命名行程')+'</strong>'+(repeatsTitle?mapLink:'')+'</div>'+
+  (place&&!repeatsTitle?'<div class="trip-view-place-row"><span class="trip-view-place">'+esc(place)+'</span>'+mapLink+'</div>':'')+
   (o.note?'<div class="trip-view-note">'+esc(o.note)+'</div>':'')+
   (hTag||tTag?'<div class="trip-view-tags">'+hTag+tTag+'</div>':'')+more+
   '<div class="tools"><button type="button" class="btn" data-a="edit">編輯</button><button type="button" class="btn" data-a="up"'+(i===0?' disabled':'')+'>上移</button><button type="button" class="btn" data-a="down"'+(i===n-1?' disabled':'')+'>下移</button><button type="button" class="btn del" data-a="del">刪除</button></div>';
