@@ -910,6 +910,16 @@ main:has(#tabs .tab[data-tab="4"][aria-selected="true"]){
 @media(max-width:420px){.wish-card .wish-card-meta{gap:6px 8px}.wish-card .wish-card-meta .wish-card-price{gap:3px 7px}.wish-card .wish-price-value{font-size:18px}}
 
 </style>
+
+<style>
+.trip-photo-strip{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;width:100%;min-width:0;max-width:100%;overflow-x:auto;padding:3px 1px 6px;grid-column:1/-1;flex:0 0 100%;-webkit-overflow-scrolling:touch}
+.trip-photo-strip .trip-photo-thumb,.trip-photo-strip .trip-photo-add{width:82px;height:82px;flex:0 0 82px;border-radius:10px;box-sizing:border-box}
+.trip-photo-thumb{object-fit:cover;cursor:zoom-in}
+.trip-photo-add{display:flex;align-items:center;justify-content:center;border:1px dashed var(--line);background:var(--ft);color:var(--sub);cursor:pointer;font-size:13px}
+.dine-card-photo[data-zoom]{cursor:zoom-in}
+.dine-plan-add{margin-top:10px}
+.ro .trip-photo-add,.ro .dine-plan-add{display:none}
+</style>
 </head>
 <body>
 <main class="">
@@ -1170,6 +1180,7 @@ function buildTripPatch(before,after){
 }
 
 const save=()=>{if(RO)return;
+  pruneTripPhotos();
   cloudRevision++;shareRevision++;recoverySave(true);
   cloudStatus('本機修改已記錄，雲端尚待確認儲存…');
   if(LOCAL_TEST){cloudStatus('測試模式：已暫存到此裝置，不會同步雲端。');return}
@@ -1407,17 +1418,18 @@ function hoursInfo(o,dayIndex,time){
   if(date&&closed.includes(date))return {state:'closed',label:'⚠ '+date+' 特殊休館'};
   if(date&&off.includes(new Date(date+'T12:00:00').getDay()))return {state:'closed',label:'⚠ 當天公休（週'+HOURS_DAYS[new Date(date+'T12:00:00').getDay()]+'）'};
   if(o.alwaysOpen)return {state:'open',label:'24 小時開放'};
-  if(o.open&&o.close){
+  const periods=[[o.open,o.close],[o.open2,o.close2]].filter(p=>p[0]&&p[1]);
+  if(periods.length){
+    const label=periods.map(p=>p.join('～')).join('、');
     if(time){
-      const t=time.slice(0,5),a=o.open,b=o.close;
-      const inside=a<=b?(t>=a&&t<b):(t>=a||t<b);
-      return inside?{state:'open',label:'✓ 抵達時間在營業時段內'}:{state:'closed',label:'⚠ 預計 '+t+' 抵達，超出營業時間 '+a+'～'+b};
+      const t=time.slice(0,5),inside=periods.some(([a,b])=>a<=b?(t>=a&&t<b):(t>=a||t<b));
+      return inside?{state:'open',label:'✓ 抵達時間在營業時段內'}:{state:'closed',label:'⚠ 預計 '+t+' 抵達，超出營業時間 '+label};
     }
-    return {state:'info',label:'營業 '+o.open+'～'+o.close+(date?' · 當天未設定公休':'')};
+    return {state:'info',label:'營業 '+label+(date?' · 當天未設定公休':'')};
   }
   return {state:'unknown',label:'尚未設定營業時間'};
 }
-function hoursSummary(o){return o.alwaysOpen?'24 小時開放':(o.open&&o.close?'營業 '+o.open+'～'+o.close:'營業時間未設定');}
+function hoursSummary(o){const p=[[o.open,o.close],[o.open2,o.close2]].filter(x=>x[0]&&x[1]);return o.alwaysOpen?'24 小時開放':p.length?'營業 '+p.map(x=>x.join('～')).join('、'):'營業時間未設定';}
 function hoursStatusHtml(o,di,time){
   const h=hoursInfo(o,di,time);
   return '<span class="hours-status '+h.state+'">'+esc(h.label)+'</span>';
@@ -1477,6 +1489,7 @@ function hoursFields(o,isDraft){
   return '<div class="hours-fields">'+
     '<label class="hours-all"><input type="checkbox" '+field('alwaysOpen')+(o.alwaysOpen?' checked':'')+'> 全年 24 小時開放</label>'+
     '<div class="hours-time"><label>開門時間<span class="hours-control"><input type="time" '+field('open')+' value="'+esc(o.open||'')+'"'+(o.alwaysOpen?' disabled':'')+'></span></label><span>至</span><label>關門時間<span class="hours-control"><input type="time" '+field('close')+' value="'+esc(o.close||'')+'"'+(o.alwaysOpen?' disabled':'')+'></span></label></div>'+
+    '<div class="hours-label">第二段營業時間（選填）</div><div class="hours-time"><label>開門時間<span class="hours-control"><input type="time" '+field('open2')+' value="'+esc(o.open2||'')+'"'+(o.alwaysOpen?' disabled':'')+'></span></label><span>至</span><label>關門時間<span class="hours-control"><input type="time" '+field('close2')+' value="'+esc(o.close2||'')+'"'+(o.alwaysOpen?' disabled':'')+'></span></label></div>'+
     '<div class="hours-label">每週公休日（可複選）</div><div class="hours-off">'+off+'</div>'+
     '<div class="hours-label">特殊休館日期</div><div class="hours-date-entry"><span class="hours-control"><input type="date" data-hours-date-input aria-label="選擇休館日期"></span><button type="button" class="btn" data-hours-add>＋ 加入日期</button></div>'+
     '<div class="hours-date-list">'+(dates||'<span class="sub">未設定特殊休館日期</span>')+'</div>'+
@@ -1527,7 +1540,7 @@ function tripTimeLabel(value){
  if(!m)return value||'時間未定';
  return (+m[1]<12?'上午':'下午')+(+m[1]%12||12)+':'+m[2];
 }
-function tripHasHours(o){return !!(o.alwaysOpen||o.open||o.close||(o.off||[]).length||(o.closedDates||[]).length)}
+function tripHasHours(o){return !!(o.alwaysOpen||o.open||o.close||o.open2||o.close2||(o.off||[]).length||(o.closedDates||[]).length)}
 function tripHasTicket(o){return !!(o.ticketType&&o.ticketType!=='unknown'||o.ticketBooking&&o.ticketBooking!=='unknown'||o.ticketPrice||o.ticketUrl||o.ticketNote||o.ticketBooked)}
 function tripViewHtml(o,i,n){
  const hasHours=tripHasHours(o),hasTicket=tripHasTicket(o);
@@ -1548,7 +1561,7 @@ function tripViewHtml(o,i,n){
  const place=String(o.place||'').trim();
  const mapLink=place?'<a class="btn trip-view-map" data-map="'+i+'" href="#" target="_blank" rel="noopener noreferrer">地圖</a>':'';
  return '<div class="trip-view-head"><span class="trip-view-time">'+esc(tripTimeLabel(o.time))+'</span><strong class="trip-view-title">'+esc(o.name||'未命名行程')+'</strong>'+mapLink+'</div>'+
-  (o.note?'<div class="trip-view-note">'+esc(o.note)+'</div>':'')+
+  tripGallery('plan',i,o)+(o.note?'<div class="trip-view-note">'+esc(o.note)+'</div>':'')+
   (hTag||tTag?'<div class="trip-view-tags">'+hTag+tTag+'</div>':'')+more+
   '<div class="tools"><button type="button" class="btn" data-a="edit">編輯</button><button type="button" class="btn" data-a="up"'+(i===0?' disabled':'')+'>上移</button><button type="button" class="btn" data-a="down"'+(i===n-1?' disabled':'')+'>下移</button><button type="button" class="btn del" data-a="del">刪除</button></div>';
 }
@@ -1593,6 +1606,7 @@ function render(){
     <textarea class="full" data-f="note" placeholder="備註（交通、預約、花費…）" aria-label="備註">${esc(it.note)}</textarea>
     ${hoursBlock(it,false,S.cur,it.time)}
     ${ticketBlock(it,false)}
+    ${tripGallery('plan',i,it,true)}
     <div class="tools"><button class="btn" data-a="up" ${i===0?'disabled':''}>上移</button><button class="btn" data-a="down" ${i===n-1?'disabled':''}>下移</button><button class="btn del" data-a="del">刪除</button></div>
   </li>${i<n-1?legHtml(it,i):''}`).join('')}</ul><div class="total">${totalText(d)}</div>
   <div class="bar"><button class="btn main" data-a="add">＋ 新增行程</button><button class="btn" data-a="sort">依時間排序</button>
@@ -1651,6 +1665,7 @@ $('day').addEventListener('input',e=>{
   save();
 });
 $('day').addEventListener('change',e=>{
+  if(e.target.dataset.img==='plan'){if(!RO)addImgs('plan',+e.target.dataset.i,e.target.files);return}
   if(e.target.dataset.ticketfield==='1'){
     const li=e.target.closest('[data-i]'),item=S.days[S.cur].items[+li.dataset.i];
     updateTicketField(item,e.target);updateTicketPanel(li,item);save();return;
@@ -1664,6 +1679,7 @@ $('day').addEventListener('change',e=>{
   updateHoursRow(li,item,S.cur,item.time);save();
 });
 $('day').onclick=e=>{
+  const zoom=e.target.closest('[data-zoom]');if(zoom){openZoom(zoom.dataset.zoom);return}
   const addDate=e.target.closest('[data-hours-add]');
   const removeDate=e.target.closest('[data-hours-remove]');
   if(addDate||removeDate){
@@ -1815,7 +1831,7 @@ const BACKUP_REGIONS=['那霸','南部','中部','北部','其他'];
 function backupSpotEditorHtml(){
   if(!BACKUP_DRAFT)BACKUP_DRAFT={name:'',region:'中部',addr:'',note:'',open:'',close:'',off:[],closedDates:[],alwaysOpen:false,ticketType:'unknown',ticketPrice:'',ticketCurrency:'JPY',ticketBooking:'unknown',ticketUrl:'',ticketNote:'',ticketBooked:false};
   const o=BACKUP_DRAFT;
-  return '<div class="backup-form-grid"><label class="wide">景點名稱<input data-spotdraft="1" data-f="name" value="'+esc(o.name||'')+'" placeholder="例如：古宇利島"></label><label>地區<select data-spotdraft="1" data-f="region">'+BACKUP_REGIONS.map(x=>'<option'+(x===(o.region||'中部')?' selected':'')+'>'+x+'</option>').join('')+'</select></label><label>地址／地點<input data-spotdraft="1" data-f="addr" value="'+esc(o.addr||'')+'" placeholder="可填地址或景點名稱"></label><label class="wide">備註<textarea data-spotdraft="1" data-f="note" rows="3" placeholder="想去的原因、注意事項…">'+esc(o.note||'')+'</textarea></label>'+hoursBlock(o,true,S.cur,'')+ticketBlock(o,true)+'</div>';
+  return '<div class="backup-form-grid"><label class="wide">景點名稱<input data-spotdraft="1" data-f="name" value="'+esc(o.name||'')+'" placeholder="例如：古宇利島"></label><label>地區<select data-spotdraft="1" data-f="region">'+BACKUP_REGIONS.map(x=>'<option'+(x===(o.region||'中部')?' selected':'')+'>'+x+'</option>').join('')+'</select></label><label>地址／地點<input data-spotdraft="1" data-f="addr" value="'+esc(o.addr||'')+'" placeholder="可填地址或景點名稱"></label><label class="wide">備註<textarea data-spotdraft="1" data-f="note" rows="3" placeholder="想去的原因、注意事項…">'+esc(o.note||'')+'</textarea></label>'+hoursBlock(o,true,S.cur,'')+ticketBlock(o,true)+spotDraftPhotos(o)+'</div>';
 }
 
 function backupSpotReadDetails(o){
@@ -1845,7 +1861,7 @@ function backupSpotCard(o,i){
     '<div class="dine-card-heading"><strong>'+esc(o.name||'未命名景點')+'</strong><span class="dine-category">'+esc(o.region||'其他')+'</span></div>'+
     '<div class="dine-card-address">'+esc(o.addr||'尚未填寫地址')+'</div>'+
     '<div class="backup-hours-status" data-spot-status>'+hoursStatusHtml(o,S.cur,'')+'</div>'+
-    ticket+backupSpotReadDetails(o)+status+
+    tripGallery('backupSpots',i,o)+ticket+backupSpotReadDetails(o)+status+
     (RO?(map?'<div class="backup-actions">'+map+'</div>':''):
       '<div class="backup-add-row"><select aria-label="選擇加入哪一天" data-spot-day>'+days+'</select><button class="btn main" data-spot-add="'+i+'">加入正式行程</button></div>'+
       '<div class="backup-actions">'+map+'<button class="btn" data-spot-edit="'+i+'">編輯</button><button class="btn del" data-spot-delete="'+i+'">刪除</button></div>')+
@@ -2193,14 +2209,14 @@ function readImg(file,max){
 async function addDineDraftImgs(files){if(!DINE_DRAFT)return;DINE_DRAFT.imgs=DINE_DRAFT.imgs||[];flash('處理圖片中…');for(const file of Array.from(files||[])){const u=await readImg(file,2400);if(u)DINE_DRAFT.imgs.push(u);else flash('有一張圖片無法讀取')}render()}
 async function addWishDraftImgs(files){if(!WISH_DRAFT)return;WISH_DRAFT.imgs=WISH_DRAFT.imgs||[];flash('處理圖片中…');for(const file of Array.from(files||[])){const u=await readImg(file,2400);if(u)WISH_DRAFT.imgs.push(u);else flash('有一張圖片無法讀取')}render()}
 async function addImgs(k,i,files){
-  const o=S[k][i],mx=2400;o.imgs=o.imgs||[];
+  const o=photoRow(k,i),mx=2400;if(RO||!o)return;o.imgs=o.imgs||[];
   flash('處理圖片中…');
   for(const f of Array.from(files)){const u=await readImg(f,mx);if(u)o.imgs.push(u);else flash('有一張圖片無法讀取')}
   save();render();
 }
 function openZoom(key){
   const [k,i,j]=String(key).split(':');
-  const row=S[k]&&S[k][+i], photos=row&&row.imgs;
+  const row=photoRow(k,i), photos=row&&row.imgs;
   if(!Array.isArray(photos)||!photos.length)return;
   let at=Math.max(0,Math.min(photos.length-1,+j||0)),scale=1,px=0,py=0;
   const el=document.createElement('div');el.className='ov photo-viewer';
@@ -2338,11 +2354,11 @@ function dineEditorHtml(){
   return '<div class="dine-draft-grid"><label class="dine-field dine-wide">店名<input data-draft="1" data-f="name" value="'+esc(o.name||'')+'" placeholder="輸入餐廳名稱"></label><div class="dine-field dine-wide"><span>供餐時段（可複選）</span><div class="dine-meals">'+DMEALS.map(m=>'<label class="dmeal-chip"><input type="checkbox" data-draft="1" data-f="meals" data-v="'+m+'"'+(o.meals.includes(m)?' checked':'')+'>'+m+'</label>').join('')+'</div></div><label class="dine-field dine-wide">店家類型<input data-draft="1" data-f="kind" value="'+esc(o.kind||'')+'" placeholder="例如：火鍋、燒肉、拉麵"></label><label class="dine-field dine-wide">地址<div class="dine-address"><input data-draft="1" data-f="addr" value="'+esc(o.addr||'')+'" placeholder="輸入地址"><a class="btn" target="_blank" rel="noopener" data-draft-map>地圖</a></div></label><div class="dine-field dine-wide"><span>營業時間（第一段）</span><div class="dine-hours"><input type="time" data-draft="1" data-f="open" value="'+esc(o.open||'')+'"><span>到</span><input type="time" data-draft="1" data-f="close" value="'+esc(o.close||'')+'"></div></div><div class="dine-field dine-wide"><span>第二段營業時間（選填）</span><div class="dine-hours"><input type="time" data-draft="1" data-f="open2" value="'+esc(o.open2||'')+'"><span>到</span><input type="time" data-draft="1" data-f="close2" value="'+esc(o.close2||'')+'"></div></div><div class="dine-field dine-wide"><span>公休日</span><div class="dine-off">'+off+'</div></div><label class="dine-field dine-wide">備註<textarea data-draft="1" data-f="note" rows="3" placeholder="必點餐點、預約方式或其他備註">'+esc(o.note||'')+'</textarea></label><div class="dine-field dine-wide"><span>餐廳照片</span><div class="dine-draft-photos">'+photos+'<label class="dine-draft-add">＋ 上傳照片<input type="file" accept="image/*" multiple data-img="dineDraft" hidden></label></div></div></div>';
 }
 function dineCard(o,i){
-  const photo=(o.imgs||[]).length?'<img class="dine-card-photo" src="'+esc(imgSrc(o.imgs[0]))+'" alt="">':'<div class="dine-card-placeholder">📷</div>';const tags=dineMeals(o).map(m=>'<span class="dine-category">'+esc(m)+'</span>').join('')+(dineKind(o)?'<span class="dine-category dine-kind">'+esc(dineKind(o))+'</span>':'');
+  const photo=(o.imgs||[]).length?'<img class="dine-card-photo" src="'+esc(imgSrc(o.imgs[0]))+'" alt="餐廳照片" data-zoom="dine:'+i+':0">':'<div class="dine-card-placeholder">📷</div>';const tags=dineMeals(o).map(m=>'<span class="dine-category">'+esc(m)+'</span>').join('')+(dineKind(o)?'<span class="dine-category dine-kind">'+esc(dineKind(o))+'</span>':'');
   const periods=[];if(o.open||o.close)periods.push(esc(o.open||'未填')+'～'+esc(o.close||'未填'));if(o.open2||o.close2)periods.push(esc(o.open2||'未填')+'～'+esc(o.close2||'未填'));const hours=periods.length?periods.join('、'):'未填營業時間';
   const off=(o.off||[]).length?'公休：'+(o.off||[]).map(n=>['日','一','二','三','四','五','六'][n]).join('、'):'未設定公休日';
   const warn=dineWarn(o);
-  return '<li class="dine-card" data-i="'+i+'"><div class="dine-card-main">'+photo+'<div class="dine-card-info"><div class="dine-card-heading"><strong>'+esc(o.name||'未命名餐廳')+'</strong>'+(tags||'<span class="dine-category">其他</span>')+'</div><div class="dine-card-address">'+esc(o.addr||'尚未填寫地址')+'</div><div class="dine-card-summary">'+hours+'</div>'+(warn?'<div class="warn">'+esc(warn)+'</div>':'')+'</div></div><details class="dine-card-details"><summary>查看詳細資料</summary><div class="dine-detail-line">'+off+'</div><div class="dine-detail-line dine-detail-note">'+esc(o.note||'尚無備註')+'</div><div class="dine-detail-actions"><a class="btn" target="_blank" rel="noopener" data-dmap="'+i+'">在地圖查看</a><button class="btn" data-dine-edit="'+i+'">編輯</button><button class="btn del" data-x="dine" data-i="'+i+'">刪除</button></div></details></li>';
+  return '<li class="dine-card" data-i="'+i+'"><div class="dine-card-main">'+photo+'<div class="dine-card-info"><div class="dine-card-heading"><strong>'+esc(o.name||'未命名餐廳')+'</strong>'+(tags||'<span class="dine-category">其他</span>')+'</div><div class="dine-card-address">'+esc(o.addr||'尚未填寫地址')+'</div><div class="dine-card-summary">'+hours+'</div>'+(warn?'<div class="warn">'+esc(warn)+'</div>':'')+'</div></div>'+dinePlanActions(o,i)+'<details class="dine-card-details"><summary>查看詳細資料</summary><div class="dine-detail-line">'+off+'</div><div class="dine-detail-line dine-detail-note">'+esc(o.note||'尚無備註')+'</div><div class="dine-detail-actions"><a class="btn" target="_blank" rel="noopener" data-dmap="'+i+'">在地圖查看</a><button class="btn" data-dine-edit="'+i+'">編輯</button><button class="btn del" data-x="dine" data-i="'+i+'">刪除</button></div></details></li>';
 }
 function flightCode(v){
   const m=String(v||'').trim().match(/([A-Z0-9]{3,4})$/);
@@ -2505,6 +2521,7 @@ oth.addEventListener('change',e=>{
   if(e.target.dataset.spotdraft==='1'){if(e.target.dataset.f?.startsWith('ticket')){updateTicketField(BACKUP_DRAFT,e.target);updateTicketPanel(e.target.closest('.backup-editor'),BACKUP_DRAFT)}else updateHoursField(BACKUP_DRAFT,e.target);if(e.target.dataset.f==='alwaysOpen')oth.querySelectorAll('.backup-editor .hours-time input').forEach(x=>x.disabled=e.target.checked);return}
   if(e.target.id==='dfil'){DF=e.target.value;render();return}
   if(e.target.id==='dsort'){DS=e.target.value;render();return}
+  if(d.img==='spotDraft'){addSpotDraftImgs(e.target.files);return}
   if(d.img==='expDraft'){addExpenseDraftImgs(e.target.files);return}
   if(d.img==='dineDraft'){addDineDraftImgs(e.target.files);return}
   if(d.img==='wishDraft'){addWishDraftImgs(e.target.files);return}
@@ -2525,15 +2542,18 @@ oth.onclick=e=>{
     if(!updateClosedDate(BACKUP_DRAFT,!!addDate,date)){flash('請先選擇休館日期');return}
     render();return;
   }
+  const spotImgDel=e.target.closest('[data-spot-img-del]');if(spotImgDel){if(!RO&&BACKUP_DRAFT){(BACKUP_DRAFT.imgs||[]).splice(+spotImgDel.dataset.spotImgDel,1);render()}return}
   const spotSave=e.target.closest('[data-spot-save]');
-  if(spotSave){const o=BACKUP_DRAFT||{};if(!(o.name||'').trim()){flash('請先輸入景點名稱');oth.querySelector('[data-spotdraft][data-f="name"]')?.focus();return}const item={id:BACKUP_EDIT>=0?(S.backupSpots[BACKUP_EDIT]?.id||uid()):uid(),name:o.name.trim(),region:o.region||'其他',addr:(o.addr||'').trim(),note:(o.note||'').trim(),open:o.open||'',close:o.close||'',off:(o.off||[]).map(Number),closedDates:o.closedDates||[],alwaysOpen:!!o.alwaysOpen,ticketType:o.ticketType||'unknown',ticketPrice:o.ticketPrice??'',ticketCurrency:o.ticketCurrency||'JPY',ticketBooking:o.ticketBooking||'unknown',ticketUrl:o.ticketUrl||'',ticketNote:o.ticketNote||'',ticketBooked:!!o.ticketBooked};if(BACKUP_EDIT>=0)S.backupSpots[BACKUP_EDIT]=Object.assign({},S.backupSpots[BACKUP_EDIT],item);else S.backupSpots.push(item);BACKUP_EDIT=-1;BACKUP_DRAFT=null;save();render();flash('已加入備選景點');return}
+  if(spotSave){const o=BACKUP_DRAFT||{};if(!(o.name||'').trim()){flash('請先輸入景點名稱');oth.querySelector('[data-spotdraft][data-f="name"]')?.focus();return}const item={id:BACKUP_EDIT>=0?(S.backupSpots[BACKUP_EDIT]?.id||uid()):uid(),name:o.name.trim(),region:o.region||'其他',addr:(o.addr||'').trim(),note:(o.note||'').trim(),open:o.open||'',close:o.close||'',off:(o.off||[]).map(Number),closedDates:o.closedDates||[],alwaysOpen:!!o.alwaysOpen,ticketType:o.ticketType||'unknown',ticketPrice:o.ticketPrice??'',ticketCurrency:o.ticketCurrency||'JPY',ticketBooking:o.ticketBooking||'unknown',ticketUrl:o.ticketUrl||'',ticketNote:o.ticketNote||'',ticketBooked:!!o.ticketBooked,imgs:(o.imgs||[]).slice(),open2:o.open2||'',close2:o.close2||''};if(BACKUP_EDIT>=0)S.backupSpots[BACKUP_EDIT]=Object.assign({},S.backupSpots[BACKUP_EDIT],item);else S.backupSpots.push(item);BACKUP_EDIT=-1;BACKUP_DRAFT=null;save();render();flash('已加入備選景點');return}
   const spotEdit=e.target.closest('[data-spot-edit]');
   if(spotEdit){BACKUP_EDIT=+spotEdit.dataset.spotEdit;BACKUP_DRAFT=JSON.parse(JSON.stringify(S.backupSpots[BACKUP_EDIT]||{}));render();oth.querySelector('.backup-editor')?.scrollIntoView({behavior:'smooth',block:'start'});return}
   if(e.target.closest('[data-spot-cancel]')){BACKUP_EDIT=-1;BACKUP_DRAFT=null;render();return}
   const spotDelete=e.target.closest('[data-spot-delete]');
   if(spotDelete){const i=+spotDelete.dataset.spotDelete;ask('確定刪除這個備選景點？').then(ok=>{if(ok){S.backupSpots.splice(i,1);save();render()}});return}
   const spotAdd=e.target.closest('[data-spot-add]');
-  if(spotAdd){const i=+spotAdd.dataset.spotAdd,o=S.backupSpots[i];if(!o)return;const card=spotAdd.closest('.backup-card'),dayIndex=+(card?.querySelector('[data-spot-day]')?.value??S.cur);if(S.days.some(d=>d.items.some(it=>it.backupId===o.id))){flash('這個景點已經排入正式行程');return}const day=S.days[dayIndex];if(!day)return;day.items.push({id:uid(),time:'',name:o.name,place:o.addr||o.name,note:o.note||'',backupId:o.id,open:o.open||'',close:o.close||'',off:[...(o.off||[])],closedDates:[...(o.closedDates||[])],alwaysOpen:!!o.alwaysOpen,ticketType:o.ticketType||'unknown',ticketPrice:o.ticketPrice??'',ticketCurrency:o.ticketCurrency||'JPY',ticketBooking:o.ticketBooking||'unknown',ticketUrl:o.ticketUrl||'',ticketNote:o.ticketNote||'',ticketBooked:!!o.ticketBooked});S.cur=dayIndex;save();V='plan';render();flash('已加入第 '+(dayIndex+1)+' 天行程');return}
+  if(spotAdd){if(RO)return;const i=+spotAdd.dataset.spotAdd,o=S.backupSpots[i];if(!o)return;const card=spotAdd.closest('.backup-card'),dayIndex=+(card?.querySelector('[data-spot-day]')?.value??S.cur);if(o.id&&S.days.some(d=>d.items.some(it=>it.backupId===o.id))){flash('這個景點已經排入正式行程');return}const day=S.days[dayIndex];if(!day)return;day.items.push(importedTripItem(o,'backup'));S.cur=dayIndex;DAY_EDIT=null;save();V='plan';render();flash('已加入第 '+(dayIndex+1)+' 天行程');return}
+  const dineAdd=e.target.closest('[data-dine-add]');
+  if(dineAdd){if(RO)return;const o=S.dine[+dineAdd.dataset.dineAdd],dayIndex=+(dineAdd.closest('.dine-card')?.querySelector('[data-dine-day]')?.value??S.cur),day=S.days[dayIndex];if(!o||!day)return;if(o.id&&day.items.some(it=>it.dineId===o.id)){flash('這家餐廳已加入當天行程');return}day.items.push(importedTripItem(o,'dine'));S.cur=dayIndex;DAY_EDIT=null;save();V='plan';render();flash('餐廳已加入第 '+(dayIndex+1)+' 天行程');return}
   const flightEdit=e.target.closest('[data-flight-edit]');
   if(flightEdit){
     const card=flightEdit.closest('.flight-card');
@@ -2658,7 +2678,56 @@ const GROUPS={plan:['title','start','end','dest','days'],flt:['flt'],dine:['dine
 const canon=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.keys(v).sort().reduce((a,x)=>(a[x]=v[x],a),{}):v);
 const pickG=g=>{const o={};GROUPS[g].forEach(k=>{if(S[k]!==undefined)o[k]=S[k]});return o};
 let SYNC=false,LAST={},FT2=0,IMG={};
-const imgSrc=u=>u&&u.startsWith('data:')?u:(IMG[u]||'');
+const imgSrc=u=>typeof u==='string'?(u.startsWith('data:')?u:(S.tripPhotos?.[u]||IMG[u]||'')):'';
+/* Only public trip/restaurant/spot pictures are pooled; private expense and flight images stay separate. */
+function shareTripPhotos(o){
+  const list=(o.imgs||[]).slice();
+  if(!list.length)return list;
+  const pool=S.tripPhotos||(S.tripPhotos={});
+  const keys=Object.keys(pool);
+  const refs=list.map(u=>{
+    if(typeof u!=='string'||!u.startsWith('data:image/'))return u;
+    const existing=keys.find(k=>pool[k]===u);
+    if(existing)return existing;
+    let id;do{id='tp_'+uid()+uid()}while(Object.prototype.hasOwnProperty.call(pool,id));
+    pool[id]=u;keys.push(id);return id;
+  });
+  o.imgs=refs.slice();return refs;
+}
+function pruneTripPhotos(){
+  if(!S.tripPhotos)return;
+  const used=new Set();
+  const rows=[...(S.dine||[]),...(S.backupSpots||[]),...(S.days||[]).flatMap(d=>d.items||[])];
+  for(const o of rows)for(const u of o.imgs||[])used.add(u);
+  for(const k of Object.keys(S.tripPhotos))if(!used.has(k))delete S.tripPhotos[k];
+}
+function photoRow(k,i){return k==='plan'?S.days[S.cur]?.items[+i]:S[k]?.[+i]}
+function tripGallery(k,i,o,edit=false){
+  const pics=o.imgs||[];
+  if(!pics.length&&(!edit||RO))return '';
+  return '<div class="trip-photo-strip">'+pics.map((u,j)=>'<img class="trip-photo-thumb" src="'+esc(imgSrc(u))+'" alt="照片 '+(j+1)+'" data-zoom="'+k+':'+i+':'+j+'">').join('')+
+    (edit&&!RO?'<label class="trip-photo-add">＋ 照片<input type="file" accept="image/*" multiple data-img="'+k+'" data-i="'+i+'" hidden></label>':'')+'</div>';
+}
+function spotDraftPhotos(o){
+  return '<div class="wide"><span class="sub">景點照片（可選）</span><div class="dine-draft-photos">'+(o.imgs||[]).map((u,j)=>'<div class="dine-draft-photo"><img src="'+esc(imgSrc(u))+'" alt=""><button type="button" class="btn del" data-spot-img-del="'+j+'" aria-label="移除照片">×</button></div>').join('')+'<label class="dine-draft-add">＋ 上傳照片<input type="file" accept="image/*" multiple data-img="spotDraft" hidden></label></div></div>';
+}
+async function addSpotDraftImgs(files){
+  if(RO||!BACKUP_DRAFT)return;
+  const draft=BACKUP_DRAFT;draft.imgs=draft.imgs||[];flash('處理圖片中…');
+  for(const f of Array.from(files||[])){const u=await readImg(f,2400);if(u)draft.imgs.push(u);else flash('有一張圖片無法讀取')}
+  if(BACKUP_DRAFT===draft)render();
+}
+function importedTripItem(o,kind){
+  if(!o.id)o.id=uid();
+  const item={id:uid(),time:'',name:o.name,place:o.addr||o.name,note:o.note||'',imgs:shareTripPhotos(o),open:o.open||'',close:o.close||'',open2:o.open2||'',close2:o.close2||'',off:[...(o.off||[])],closedDates:[...(o.closedDates||[])],alwaysOpen:!!o.alwaysOpen,ticketType:o.ticketType||'unknown',ticketPrice:o.ticketPrice??'',ticketCurrency:o.ticketCurrency||'JPY',ticketBooking:o.ticketBooking||'unknown',ticketUrl:o.ticketUrl||'',ticketNote:o.ticketNote||'',ticketBooked:!!o.ticketBooked};
+  item[kind==='dine'?'dineId':'backupId']=o.id;
+  return item;
+}
+function dinePlanActions(o,i){
+  if(RO)return '';
+  const days=S.days.map((d,j)=>'<option value="'+j+'"'+(j===S.cur?' selected':'')+'>第 '+(j+1)+' 天'+(d.name?'｜'+esc(d.name):'')+'</option>').join('');
+  return '<div class="backup-add-row dine-plan-add"><select aria-label="選擇加入哪一天" data-dine-day>'+days+'</select><button type="button" class="btn main" data-dine-add="'+i+'">加入行程</button></div>';
+}
 function paintImgs(){document.querySelectorAll('img[data-iid]').forEach(im=>{const u=IMG[im.dataset.iid];if(u&&im.getAttribute('src')!==u)im.src=u})}
 function schedFlush(){if(!SYNC||RO)return;clearTimeout(FT2);FT2=setTimeout(flush,700)}
 function shrinkImg(u){return new Promise(res=>{
